@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
+import { asset } from '../utils/assetPath';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -78,7 +79,7 @@ export default function ProductDetail() {
           {/* Left: Image */}
           <div className="product-detail__image-wrapper">
             <img
-              src={product.image}
+              src={asset(product.image)}
               alt={product.name}
               className="product-detail__image"
             />

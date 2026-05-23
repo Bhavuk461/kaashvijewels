@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { asset } from '../utils/assetPath';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
@@ -20,7 +21,7 @@ export default function ProductCard({ product }) {
     >
       <div className="product-card__image-wrapper">
         <img
-          src={product.image}
+          src={asset(product.image)}
           alt={product.name}
           className="product-card__image"
           loading="lazy"

@@ -1,3 +1,5 @@
+import { asset } from '../utils/assetPath';
+
 export default function About() {
   const values = [
     {
@@ -53,7 +55,7 @@ export default function About() {
           <div className="about-grid">
             <div className="about-image">
               <img
-                src="/images/products/anti-tarnish/at-05.png"
+                src={asset('/images/products/anti-tarnish/at-05.png')}
                 alt="The Kaashvi Jewels — Our Story"
               />
             </div>
@@ -83,7 +85,7 @@ export default function About() {
           <div className="about-grid about-grid--reverse">
             <div className="about-image">
               <img
-                src="/images/products/korean/kr-06.png"
+                src={asset('/images/products/korean/kr-06.png')}
                 alt="Craftsmanship at The Kaashvi Jewels"
               />
             </div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { products, categories } from '../data/products';
 import ProductCard from '../components/ProductCard';
+import { asset } from '../utils/assetPath';
 
 export default function Home() {
   const { addToCart } = useCart();
@@ -17,7 +18,7 @@ export default function Home() {
       <section className="home-hero">
         <div className="home-hero__grid">
           <Link to="/shop?category=anti-tarnish" className="home-hero__panel home-hero__panel--left">
-            <img src="/images/products/anti-tarnish/at-05.png" alt="Anti-Tarnish Collection" className="home-hero__img" />
+            <img src={asset('/images/products/anti-tarnish/at-05.png')} alt="Anti-Tarnish Collection" className="home-hero__img" />
             <div className="home-hero__overlay">
               <span className="home-hero__label">Anti-Tarnish Collection</span>
               <h2 className="home-hero__title">Golden Elegance</h2>
@@ -25,7 +26,7 @@ export default function Home() {
             </div>
           </Link>
           <Link to="/shop?category=korean" className="home-hero__panel home-hero__panel--right">
-            <img src="/images/products/korean/kr-07.png" alt="Korean Collection" className="home-hero__img" />
+            <img src={asset('/images/products/korean/kr-07.png')} alt="Korean Collection" className="home-hero__img" />
             <div className="home-hero__overlay">
               <span className="home-hero__label">Korean Collection</span>
               <h2 className="home-hero__title">Crystal & Pearl</h2>
@@ -92,7 +93,7 @@ export default function Home() {
       <section className="home-wide-banner">
         <div className="home-wide-banner__grid">
           <div className="home-wide-banner__imgwrap">
-            <img src="/images/products/anti-tarnish/at-11.png" alt="Butterfly Studs" />
+            <img src={asset('/images/products/anti-tarnish/at-11.png')} alt="Butterfly Studs" />
           </div>
           <div className="home-wide-banner__content">
             <span className="home-wide-banner__tag">Featured</span>
@@ -101,7 +102,7 @@ export default function Home() {
             <Link to="/product/at-11" className="btn btn-primary btn-lg">Shop This Look →</Link>
           </div>
           <div className="home-wide-banner__imgwrap">
-            <img src="/images/products/anti-tarnish/at-16.png" alt="Double Star Dangles" />
+            <img src={asset('/images/products/anti-tarnish/at-16.png')} alt="Double Star Dangles" />
           </div>
         </div>
       </section>
@@ -144,42 +145,42 @@ export default function Home() {
       {/* ═══ Product Mosaic ═══ */}
       <section className="home-mosaic">
         <Link to="/product/at-01" className="home-mosaic__item home-mosaic__item--tall">
-          <img src="/images/products/anti-tarnish/at-01.png" alt={products[0].name} />
+          <img src={asset('/images/products/anti-tarnish/at-01.png')} alt={products[0].name} />
           <div className="home-mosaic__overlay">
             <span>{products[0].name}</span>
             <span>₹{products[0].price}</span>
           </div>
         </Link>
         <Link to="/product/at-03" className="home-mosaic__item">
-          <img src="/images/products/anti-tarnish/at-03.png" alt={products[2].name} />
+          <img src={asset('/images/products/anti-tarnish/at-03.png')} alt={products[2].name} />
           <div className="home-mosaic__overlay">
             <span>{products[2].name}</span>
             <span>₹{products[2].price}</span>
           </div>
         </Link>
         <Link to="/product/at-09" className="home-mosaic__item">
-          <img src="/images/products/anti-tarnish/at-09.png" alt={products[8].name} />
+          <img src={asset('/images/products/anti-tarnish/at-09.png')} alt={products[8].name} />
           <div className="home-mosaic__overlay">
             <span>{products[8].name}</span>
             <span>₹{products[8].price}</span>
           </div>
         </Link>
         <Link to="/product/at-15" className="home-mosaic__item home-mosaic__item--tall">
-          <img src="/images/products/anti-tarnish/at-15.png" alt={products[14].name} />
+          <img src={asset('/images/products/anti-tarnish/at-15.png')} alt={products[14].name} />
           <div className="home-mosaic__overlay">
             <span>{products[14].name}</span>
             <span>₹{products[14].price}</span>
           </div>
         </Link>
         <Link to="/product/at-14" className="home-mosaic__item">
-          <img src="/images/products/anti-tarnish/at-14.png" alt={products[13].name} />
+          <img src={asset('/images/products/anti-tarnish/at-14.png')} alt={products[13].name} />
           <div className="home-mosaic__overlay">
             <span>{products[13].name}</span>
             <span>₹{products[13].price}</span>
           </div>
         </Link>
         <Link to="/product/at-07" className="home-mosaic__item">
-          <img src="/images/products/anti-tarnish/at-07.png" alt={products[6].name} />
+          <img src={asset('/images/products/anti-tarnish/at-07.png')} alt={products[6].name} />
           <div className="home-mosaic__overlay">
             <span>{products[6].name}</span>
             <span>₹{products[6].price}</span>

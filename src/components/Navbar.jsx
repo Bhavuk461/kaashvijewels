@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { asset } from '../utils/assetPath';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -30,7 +31,7 @@ export default function Navbar() {
     <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} id="main-navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__logo" id="navbar-logo">
-          <img src="/images/logo.png" alt="The Kaashvi Jewels" />
+          <img src={asset('/images/logo.png')} alt="The Kaashvi Jewels" />
         </Link>
 
         <div className={`navbar__links ${mobileOpen ? 'navbar__links--open' : ''}`}>

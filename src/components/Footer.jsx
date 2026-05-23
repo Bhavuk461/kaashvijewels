@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { asset } from '../utils/assetPath';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -18,7 +19,7 @@ export default function Footer() {
         <div className="footer__grid">
           {/* Brand */}
           <div>
-            <img src="/images/logo.png" alt="The Kaashvi Jewels" className="footer__brand-logo" />
+            <img src={asset('/images/logo.png')} alt="The Kaashvi Jewels" className="footer__brand-logo" />
             <p className="footer__brand-text">
               Discover the beauty of affordable luxury. The Kaashvi Jewels brings you exquisite 
               artificial jewellery that makes every moment special. Premium quality, timeless designs.
