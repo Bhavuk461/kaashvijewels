@@ -1,0 +1,154 @@
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { products } from '../data/products';
+import ProductCard from '../components/ProductCard';
+
+export default function ProductDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const [quantity, setQuantity] = useState(1);
+
+  // Find product by id
+  const product = products.find((p) => p.id === id);
+
+  // ── 404 state ──
+  if (!product) {
+    return (
+      <div className="product-detail">
+        <div className="container">
+          <div className="cart-empty" style={{ paddingTop: 'var(--space-4xl)' }}>
+            <div className="cart-empty__icon">😕</div>
+            <h2 className="cart-empty__title">Product Not Found</h2>
+            <p className="cart-empty__text">
+              Sorry, the product you're looking for doesn't exist or has been removed.
+            </p>
+            <Link to="/shop" className="btn btn-primary">
+              ← Back to Shop
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const categoryLabel =
+    product.category === 'anti-tarnish' ? 'Anti-Tarnish' : 'Korean';
+
+  // ── Quantity handlers ──
+  const decreaseQuantity = () => {
+    setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  };
+
+  const increaseQuantity = () => {
+    setQuantity((prev) => (prev < 10 ? prev + 1 : 10));
+  };
+
+  // ── Add to cart ──
+  const handleAddToCart = () => {
+    addToCart(product, quantity);
+  };
+
+  // ── Buy now → add to cart + navigate to checkout ──
+  const handleBuyNow = () => {
+    addToCart(product, quantity);
+    navigate('/checkout');
+  };
+
+  // ── Related products: same category, exclude current, limit to 4 ──
+  const relatedProducts = products
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 4);
+
+  return (
+    <div className="product-detail">
+      <div className="container">
+        {/* ── Breadcrumb ── */}
+        <nav className="breadcrumb">
+          <Link to="/">Home</Link>
+          <span>›</span>
+          <Link to="/shop">Shop</Link>
+          <span>›</span>
+          <span>{product.name}</span>
+        </nav>
+
+        {/* ── Product Grid ── */}
+        <div className="product-detail__grid">
+          {/* Left: Image */}
+          <div className="product-detail__image-wrapper">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-detail__image"
+            />
+          </div>
+
+          {/* Right: Info */}
+          <div className="product-detail__info">
+            <p className="product-detail__category">{categoryLabel} Collection</p>
+            <h1 className="product-detail__name">{product.name}</h1>
+            <p className="product-detail__price">₹{product.price}</p>
+            <p className="product-detail__description">{product.description}</p>
+
+            {/* Meta Info */}
+            <div className="product-detail__meta">
+              <div className="product-detail__meta-item">
+                <strong>Material</strong>
+                <span>{product.material}</span>
+              </div>
+              <div className="product-detail__meta-item">
+                <strong>Weight</strong>
+                <span>{product.weight}</span>
+              </div>
+              <div className="product-detail__meta-item">
+                <strong>Type</strong>
+                <span>{product.type}</span>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="product-detail__quantity">
+              <span className="product-detail__quantity-label">Quantity:</span>
+              <div className="quantity-controls">
+                <button onClick={decreaseQuantity} aria-label="Decrease quantity">
+                  −
+                </button>
+                <span>{quantity}</span>
+                <button onClick={increaseQuantity} aria-label="Increase quantity">
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="product-detail__actions">
+              <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
+                🛒 Add to Cart
+              </button>
+              <button className="btn btn-gold btn-lg" onClick={handleBuyNow}>
+                ⚡ Buy Now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Related Products ── */}
+        {relatedProducts.length > 0 && (
+          <section className="section">
+            <div className="section-header">
+              <span className="section-subtitle">✨ More to Love</span>
+              <h2>You May Also Like</h2>
+              <div className="divider"></div>
+            </div>
+            <div className="product-grid">
+              {relatedProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
