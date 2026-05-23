@@ -151,8 +151,8 @@ export default function Contact() {
               <div>
                 <div className="contact-info-item__label">Phone</div>
                 <div className="contact-info-item__value">
-                  <a href="tel:+919876543210" style={{ color: 'var(--color-primary-dark)' }}>
-                    +91 98765 43210
+                  <a href="https://wa.me/919871796965" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary-dark)' }}>
+                    +91 98717 96965
                   </a>
                 </div>
               </div>
