@@ -497,39 +497,137 @@
 @media (max-width: 639px) {
   .hero-editorial {
     grid-template-columns: 1fr;
-    gap: var(--space-lg);
-    padding: calc(var(--nav-height) + var(--space-xl)) var(--space-md)
-      var(--space-2xl);
+    gap: var(--space-xl);
+    padding: calc(var(--nav-height) + var(--space-lg)) var(--space-md)
+      var(--space-xl);
   }
 
   .hero-editorial__column {
     gap: var(--space-lg);
+    padding-top: 0 !important;
   }
 
+  /* Stack the columns in a curated reading order on mobile:
+     center hero first, then the supporting modules. */
   .hero-editorial__column--center {
     order: 0;
   }
-
   .hero-editorial__column--left {
     order: 1;
-    padding-top: 0;
+    align-items: center;
+    text-align: center;
   }
-
   .hero-editorial__column--right {
     order: 2;
-    padding-top: 0;
   }
 
+  /* Cap the avatar circle so it doesn't dominate the viewport. */
+  .avatar-card {
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  /* Center the date stamp on mobile. */
+  .date-stamp {
+    justify-content: center;
+  }
+  .date-stamp__num {
+    font-size: 1.75rem;
+  }
+  .date-stamp__name {
+    font-size: 0.7rem;
+  }
+
+  /* Tighter dome typography on small screens. */
   .dome {
-    padding: var(--space-xl) var(--space-md);
+    padding: var(--space-2xl) var(--space-md);
+    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
+      18% 18% var(--radius-lg) var(--radius-lg);
+  }
+  .dome__headline {
+    font-size: clamp(1.85rem, 9vw, 2.6rem);
+    line-height: 1.1;
+  }
+  .dome__tagline {
+    margin-bottom: var(--space-md);
+  }
+
+  /* Portrait panel: shorter aspect on mobile so it doesn't take a full screen. */
+  .portrait-panel {
+    aspect-ratio: 4 / 5;
+    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
+      18% 18% var(--radius-lg) var(--radius-lg);
+  }
+  .portrait-panel .editorial-card__media,
+  .branded-card .editorial-card__media {
+    aspect-ratio: 4 / 5;
+  }
+
+  /* Branded card: softer arch on small screens. */
+  .branded-card {
+    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
+      18% 18% var(--radius-lg) var(--radius-lg);
+  }
+
+  /* Card captions tighten up. */
+  .editorial-card__caption {
+    padding: var(--space-md) var(--space-md) var(--space-lg);
+  }
+  .editorial-card__name {
+    font-size: 0.95rem;
+  }
+  .editorial-card__price {
+    font-size: 0.9rem;
+  }
+  .editorial-card__tag {
+    top: var(--space-sm);
+    font-size: 0.65rem;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Editorial caption (italic note under right oval). */
+  .editorial-caption {
+    font-size: 0.95rem;
+  }
+}
+
+/* ─── Responsive: extra small phones (<400px) ──────────────────── */
+
+@media (max-width: 399px) {
+  .hero-editorial {
+    padding: calc(var(--nav-height) + var(--space-md)) var(--space-sm)
+      var(--space-lg);
+    gap: var(--space-lg);
+  }
+
+  .avatar-card {
+    max-width: 160px;
+  }
+
+  .dome__headline {
+    font-size: clamp(1.6rem, 9.5vw, 2.1rem);
   }
 
   .date-stamp__num {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
   .editorial-card__caption {
-    padding: var(--space-md) var(--space-lg) var(--space-lg);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+  }
+}
+
+/* ─── Touch / coarse-pointer interactions ──────────────────────── */
+
+/* On touch devices :hover doesn't fire reliably; provide a tap-feedback
+   state so cards still feel interactive. The transform stays on the
+   inner image, NOT the card, so it never fights the parallax write. */
+@media (hover: none) {
+  .oval-card:active .editorial-card__image,
+  .branded-card:active .editorial-card__image,
+  .portrait-panel:active .editorial-card__image,
+  .avatar-card:active .editorial-card__image {
+    transform: scale(1.04);
   }
 }
 
