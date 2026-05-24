@@ -87,6 +87,12 @@
   /* Layout */
   --max-width: 1280px;
   --nav-height: 72px;
+
+  /* Editorial Motion & Shape Tokens (homepage parallax revamp) */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --reveal-duration: 750ms;
+  --arch-radius: 50% 50% 0 0 / 35% 35% 0 0;
+  --oval-radius: 50% / 60%;
 }
 
 /* ─── Reset & Base ─── */

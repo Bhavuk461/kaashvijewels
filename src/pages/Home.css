@@ -1,0 +1,556 @@
+/* ═══════════════════════════════════════════════════════════════
+   THE KAASHVI JEWELS — Homepage Editorial Parallax Styles
+   Scoped to src/pages/Home.jsx — uses ONLY var(--*) tokens
+   from src/App.css. No literal color values appear in this file.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Hero Editorial Section ───────────────────────────────────── */
+
+.hero-editorial {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: var(--space-2xl);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: calc(var(--nav-height) + var(--space-3xl)) var(--space-xl)
+    var(--space-4xl);
+  background: var(--color-bg);
+  /* Clip parallax drift so cards never bleed into the marquee /
+     section below. Each module accumulates `scrollY * speedFactor`
+     so without this clip the cards drift further on long scrolls. */
+  overflow: hidden;
+}
+
+.hero-editorial__column {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+/* Thin guideline dividers between the three columns at desktop. */
+.hero-editorial__column:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: calc(var(--space-2xl) / -2);
+  width: 1px;
+  height: 100%;
+  background: var(--color-primary-light);
+  pointer-events: none;
+}
+
+.hero-editorial__column--no-divider::after {
+  display: none;
+}
+
+/* Column-specific composition tweaks. */
+.hero-editorial__column--center {
+  align-items: stretch;
+  gap: var(--space-2xl);
+}
+
+.hero-editorial__column--left {
+  padding-top: var(--space-2xl);
+}
+
+.hero-editorial__column--right {
+  padding-top: var(--space-xl);
+}
+
+/* ─── Shared Shape Primitives ──────────────────────────────────── */
+
+/* Arched-top panel — top half-circle, square bottom. */
+.arched-panel {
+  position: relative;
+  border-radius: var(--arch-radius);
+  overflow: hidden;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
+  isolation: isolate;
+}
+
+/* Oval-shaped product card. Parallax target — transform is written
+   directly by ParallaxProvider every frame, so we MUST NOT transition
+   transform here (it would smooth out the parallax and kill responsiveness).
+   Hover feedback uses box-shadow only on this element; the inner image
+   handles the hover scale via .editorial-card__media. */
+.oval-card {
+  position: relative;
+  display: block;
+  border-radius: var(--oval-radius);
+  overflow: hidden;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow var(--transition-base);
+  will-change: transform;
+  isolation: isolate;
+}
+
+.oval-card:hover,
+.oval-card:focus-visible {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Circular avatar/badge card. Parallax target — same rule as .oval-card. */
+.avatar-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gradient-rose);
+  box-shadow: var(--shadow-md);
+  isolation: isolate;
+  transition: box-shadow var(--transition-base);
+  will-change: transform;
+}
+
+.avatar-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Arched branded card. Parallax target — same rule as .oval-card. */
+.branded-card {
+  position: relative;
+  display: block;
+  border-radius: var(--arch-radius);
+  overflow: hidden;
+  background: var(--gradient-card);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+  color: inherit;
+  isolation: isolate;
+  transition: box-shadow var(--transition-base);
+  will-change: transform;
+}
+
+.branded-card:hover,
+.branded-card:focus-visible {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Tall arched portrait dome with deep primary-dark backdrop
+   (per Requirement 2.3 — substitutes the reference's red panel).
+   Parallax target — no transform transition. */
+.portrait-panel {
+  position: relative;
+  display: block;
+  border-radius: var(--arch-radius);
+  overflow: hidden;
+  background: var(--color-primary-deeper);
+  box-shadow: var(--shadow-lg);
+  aspect-ratio: 3 / 4;
+  isolation: isolate;
+  will-change: transform;
+}
+
+/* ─── Card Image Wrappers ──────────────────────────────────────── */
+
+.editorial-card__media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 400ms var(--ease-editorial);
+  will-change: transform;
+}
+
+/* Subtle hover zoom on the inner image only — leaves the card's parallax
+   transform on the outer element untouched so scroll responsiveness is
+   never compromised. */
+.oval-card:hover .editorial-card__image,
+.branded-card:hover .editorial-card__image,
+.portrait-panel:hover .editorial-card__image,
+.avatar-card:hover .editorial-card__image {
+  transform: scale(1.06);
+}
+
+.editorial-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 600ms var(--ease-editorial);
+  will-change: transform;
+}
+
+/* Oval card uses a vertical aspect to match the editorial reference. */
+.oval-card .editorial-card__media {
+  aspect-ratio: 4 / 5;
+}
+
+/* Avatar card image fills the circle. */
+.avatar-card .editorial-card__media {
+  position: absolute;
+  inset: 0;
+}
+
+/* Branded and portrait panels keep the arched aspect. */
+.branded-card .editorial-card__media,
+.portrait-panel .editorial-card__media {
+  aspect-ratio: 3 / 4;
+}
+
+/* ─── Card Captions / Text Overlays ────────────────────────────── */
+
+.editorial-card__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
+  background: linear-gradient(
+    to top,
+    var(--color-primary-deeper) 0%,
+    transparent 100%
+  );
+  color: var(--color-text-inverse);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.editorial-card__name {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 var(--space-xs);
+  color: var(--color-text-inverse);
+}
+
+.editorial-card__price {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-light);
+}
+
+.editorial-card__tag {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-md);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-text-inverse);
+  background: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  z-index: 3;
+}
+
+/* ─── Dome Headline Block (center column) ──────────────────────── */
+
+.dome {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-3xl) var(--space-xl);
+  border-radius: var(--arch-radius);
+  background: var(--gradient-hero);
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+  isolation: isolate;
+  will-change: transform;
+}
+
+.dome::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 30%,
+    var(--color-primary-lighter) 0%,
+    transparent 60%
+  );
+  opacity: 0.6;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.dome__tagline {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-lg);
+}
+
+.dome__headline {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin: 0 0 var(--space-lg);
+}
+
+.dome__headline em,
+.dome__headline .font-accent {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-primary-dark);
+}
+
+.dome__divider {
+  display: block;
+  width: 80px;
+  height: 1px;
+  margin: var(--space-md) auto 0;
+  background: var(--color-primary-light);
+  border: 0;
+}
+
+/* ─── Date Stamp Module ────────────────────────────────────────── */
+
+.date-stamp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  color: var(--color-text-secondary);
+}
+
+.date-stamp--centered {
+  justify-content: center;
+}
+
+.date-stamp__num {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-primary-dark);
+  letter-spacing: -0.01em;
+}
+
+.date-stamp__divider {
+  display: block;
+  width: clamp(40px, 8vw, 120px);
+  height: 1px;
+  background: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.date-stamp__name {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-text-secondary);
+}
+
+/* ─── Guideline Divider (reusable thin rule) ───────────────────── */
+
+.guideline-divider {
+  display: block;
+  width: clamp(40px, 6vw, 120px);
+  height: 1px;
+  background: var(--color-primary-light);
+  border: 0;
+  margin: var(--space-md) 0;
+}
+
+.guideline-divider--centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.guideline-divider--vertical {
+  width: 1px;
+  height: clamp(40px, 6vw, 120px);
+  margin: 0 var(--space-md);
+}
+
+/* ─── Reveal-on-Scroll ─────────────────────────────────────────── */
+
+/* Default (static fallback): content is visible. The .parallax-ready
+   gate is added to <body> only after ParallaxProvider successfully
+   initializes, so if JS fails the page still shows the content. */
+.reveal {
+  transition: opacity var(--reveal-duration) var(--ease-editorial),
+    transform var(--reveal-duration) var(--ease-editorial);
+}
+
+.parallax-ready .reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Focus Visibility (Requirement 11.3) ──────────────────────── */
+
+.hero-editorial a:focus-visible,
+.hero-editorial button:focus-visible,
+.hero-editorial [role='link']:focus-visible,
+.hero-editorial [tabindex]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Editorial Section Labels (re-usable) ─────────────────────── */
+
+.editorial-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-primary-dark);
+}
+
+.editorial-label::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--color-primary-light);
+}
+
+/* ─── Editorial Caption (small italic note) ────────────────────── */
+
+.editorial-caption {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-align: center;
+  max-width: 32ch;
+  margin: 0 auto;
+}
+
+/* ─── Subtle entrance keyframe (used by dome) ─────────────────── */
+
+@keyframes editorialFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dome uses the standard .reveal fade-in (its outer wrapper handles
+   that). We deliberately do NOT keyframe transform on the dome itself
+   because the parallax engine writes to its inline transform every
+   frame; a competing animation would cause stutter. */
+
+/* ─── Responsive: tablet (≥640px and <1024px) ──────────────────── */
+
+@media (max-width: 1023px) {
+  .hero-editorial {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    padding: calc(var(--nav-height) + var(--space-2xl)) var(--space-lg)
+      var(--space-2xl);
+  }
+
+  /* Center column spans both at the tablet breakpoint. */
+  .hero-editorial__column--center {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  /* Hide the desktop guideline dividers below 1024px. */
+  .hero-editorial__column:not(:last-child)::after {
+    display: none;
+  }
+
+  .dome {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+}
+
+/* ─── Responsive: mobile (<640px) ──────────────────────────────── */
+
+@media (max-width: 639px) {
+  .hero-editorial {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    padding: calc(var(--nav-height) + var(--space-xl)) var(--space-md)
+      var(--space-2xl);
+  }
+
+  .hero-editorial__column {
+    gap: var(--space-lg);
+  }
+
+  .hero-editorial__column--center {
+    order: 0;
+  }
+
+  .hero-editorial__column--left {
+    order: 1;
+    padding-top: 0;
+  }
+
+  .hero-editorial__column--right {
+    order: 2;
+    padding-top: 0;
+  }
+
+  .dome {
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .date-stamp__num {
+    font-size: 2rem;
+  }
+
+  .editorial-card__caption {
+    padding: var(--space-md) var(--space-lg) var(--space-lg);
+  }
+}
+
+/* ─── Reduced-motion safety net ────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .oval-card,
+  .avatar-card,
+  .branded-card,
+  .editorial-card__media {
+    transition: none;
+  }
+
+  .parallax-ready .dome {
+    animation: none;
+  }
+}
