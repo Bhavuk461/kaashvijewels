@@ -500,6 +500,9 @@
     gap: var(--space-xl);
     padding: calc(var(--nav-height) + var(--space-lg)) var(--space-md)
       var(--space-xl);
+    /* Allow content to reflow naturally — no parallax clipping needed
+       on mobile since speed factors are 0 there. */
+    overflow: visible;
   }
 
   .hero-editorial__column {
@@ -514,11 +517,23 @@
   }
   .hero-editorial__column--left {
     order: 1;
-    align-items: center;
-    text-align: center;
+    align-items: stretch;
   }
   .hero-editorial__column--right {
     order: 2;
+  }
+
+  /* ── Cards on mobile ── */
+  /* Disable will-change so transforms don't cause GPU layer overhead
+     for elements that no longer animate. */
+  .oval-card,
+  .avatar-card,
+  .branded-card,
+  .portrait-panel,
+  .dome {
+    will-change: auto;
+    /* Reset any parallax transform left over from a previous viewport. */
+    transform: none !important;
   }
 
   /* Cap the avatar circle so it doesn't dominate the viewport. */
@@ -527,7 +542,7 @@
     margin: 0 auto;
   }
 
-  /* Center the date stamp on mobile. */
+  /* Date stamp centered on mobile. */
   .date-stamp {
     justify-content: center;
   }
@@ -541,8 +556,7 @@
   /* Tighter dome typography on small screens. */
   .dome {
     padding: var(--space-2xl) var(--space-md);
-    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
-      18% 18% var(--radius-lg) var(--radius-lg);
+    border-radius: var(--radius-xl);
   }
   .dome__headline {
     font-size: clamp(1.85rem, 9vw, 2.6rem);
@@ -552,40 +566,87 @@
     margin-bottom: var(--space-md);
   }
 
-  /* Portrait panel: shorter aspect on mobile so it doesn't take a full screen. */
-  .portrait-panel {
-    aspect-ratio: 4 / 5;
-    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
-      18% 18% var(--radius-lg) var(--radius-lg);
+  /* Cap card heights so they don't fill an entire phone screen. */
+  .portrait-panel,
+  .branded-card,
+  .oval-card {
+    max-height: 70vh;
   }
+
+  /* On mobile, oval card becomes a softer rounded rectangle for better
+     legibility — pure ovals fight with the inline caption layout. */
+  .oval-card {
+    border-radius: var(--radius-xl);
+  }
+
+  /* Portrait & branded panels use a softer arch on mobile. */
+  .portrait-panel,
+  .branded-card {
+    border-radius: var(--radius-xl);
+  }
+
+  /* Inner media wrappers keep their aspect but capped. */
   .portrait-panel .editorial-card__media,
   .branded-card .editorial-card__media {
     aspect-ratio: 4 / 5;
+    max-height: 60vh;
+  }
+  .oval-card .editorial-card__media {
+    aspect-ratio: 1 / 1;
+    max-height: 60vh;
+  }
+  .avatar-card .editorial-card__media {
+    aspect-ratio: 1 / 1;
   }
 
-  /* Branded card: softer arch on small screens. */
-  .branded-card {
-    border-radius: 32% 32% var(--radius-lg) var(--radius-lg) /
-      18% 18% var(--radius-lg) var(--radius-lg);
+  /* Caption layout: on mobile, move caption BELOW the image instead of
+     overlaying it. Overlay caused contrast issues on busy product photos
+     and clipped on tall cards. */
+  .oval-card,
+  .branded-card,
+  .portrait-panel {
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Card captions tighten up. */
   .editorial-card__caption {
-    padding: var(--space-md) var(--space-md) var(--space-lg);
+    position: static;
+    background: var(--color-bg-card);
+    color: var(--color-text);
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--color-border-light);
   }
   .editorial-card__name {
+    color: var(--color-text);
     font-size: 0.95rem;
   }
   .editorial-card__price {
-    font-size: 0.9rem;
+    color: var(--color-primary-dark);
+    font-size: 0.95rem;
   }
+
+  /* Portrait caption stays light on its dark backdrop (it's the hero). */
+  .portrait-panel .editorial-card__caption {
+    background: var(--color-primary-deeper);
+    color: var(--color-text-inverse);
+    border-top: none;
+  }
+  .portrait-panel .editorial-card__name {
+    color: var(--color-text-inverse);
+    font-size: 0.95rem;
+  }
+  .portrait-panel .editorial-card__price {
+    color: var(--color-primary-light);
+  }
+
+  /* Featured-edit tag stays on top of the image. */
   .editorial-card__tag {
     top: var(--space-sm);
     font-size: 0.65rem;
     padding: var(--space-xs) var(--space-sm);
   }
 
-  /* Editorial caption (italic note under right oval). */
+  /* Editorial italic caption (under right oval). */
   .editorial-caption {
     font-size: 0.95rem;
   }
@@ -613,7 +674,7 @@
   }
 
   .editorial-card__caption {
-    padding: var(--space-sm) var(--space-md) var(--space-md);
+    padding: var(--space-sm) var(--space-md);
   }
 }
 

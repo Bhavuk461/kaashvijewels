@@ -15,6 +15,11 @@ export function clampSpeed(s) {
 // Halve the speed factor on small viewports. R7.4
 // Returns `speed * 0.5` only when `viewportWidth` is a finite positive number
 // strictly less than 640; otherwise returns `speed` unchanged.
+//
+// On true mobile (<640px) we return 0 — fast finger-scroll velocity makes any
+// drift cause the cards to bleed past their containers and the captions to
+// clip; the editorial composition reads better as a clean stack with no
+// parallax on phones.
 export function scaleSpeedForViewport(speed, viewportWidth) {
   if (
     typeof viewportWidth !== 'number' ||
@@ -23,7 +28,9 @@ export function scaleSpeedForViewport(speed, viewportWidth) {
   ) {
     return speed;
   }
-  return viewportWidth < 640 ? speed * 0.5 : speed;
+  if (viewportWidth < 640) return 0;
+  if (viewportWidth < 1024) return speed * 0.6;
+  return speed;
 }
 
 // Compute the parallax translate offset (CSS px) for a given scroll position. R3.1, R3.6
