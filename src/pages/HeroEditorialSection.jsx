@@ -47,7 +47,12 @@ function AvatarCard({ product }) {
 
   return (
     <div className={revealClass(isVisible)} ref={revealRef}>
-      <div className="avatar-card" ref={parallaxRef}>
+      <Link
+        to={`/product/${product.id}`}
+        className="avatar-card"
+        ref={parallaxRef}
+        aria-label={product.name}
+      >
         <div className="editorial-card__media">
           <ProductImage
             src={product.image}
@@ -56,7 +61,7 @@ function AvatarCard({ product }) {
             className="editorial-card__image"
           />
         </div>
-      </div>
+      </Link>
     </div>
   );
 }

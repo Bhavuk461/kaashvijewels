@@ -109,6 +109,9 @@
   isolation: isolate;
   transition: box-shadow var(--transition-base);
   will-change: transform;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .avatar-card:hover {
