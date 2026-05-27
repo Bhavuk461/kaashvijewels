@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import useParallax from '../hooks/useParallax';
 import useReveal from '../hooks/useReveal';
-import { asset } from '../utils/assetPath';
+import ProductImage from '../components/ProductImage';
 import { selectHeroProducts } from './heroProductSelection';
 
 /* ──────────────────────────────────────────────────────────────────
@@ -49,11 +49,11 @@ function AvatarCard({ product }) {
     <div className={revealClass(isVisible)} ref={revealRef}>
       <div className="avatar-card" ref={parallaxRef}>
         <div className="editorial-card__media">
-          <img
-            className="editorial-card__image"
-            src={asset(product.image)}
+          <ProductImage
+            src={product.image}
             alt={product.name}
-            loading="lazy"
+            size="sm"
+            className="editorial-card__image"
           />
         </div>
       </div>
@@ -93,11 +93,11 @@ function OvalProductCard({ product, speed, caption }) {
         ref={parallaxRef}
       >
         <div className="editorial-card__media">
-          <img
-            className="editorial-card__image"
-            src={asset(product.image)}
+          <ProductImage
+            src={product.image}
             alt={product.name}
-            loading="lazy"
+            size="sm"
+            className="editorial-card__image"
           />
         </div>
         <div className="editorial-card__caption">
@@ -152,10 +152,11 @@ function ArchedPortraitPanel({ product }) {
       >
         <span className="editorial-card__tag">Featured Edit</span>
         <div className="editorial-card__media">
-          <img
-            className="editorial-card__image"
-            src={asset(product.image)}
+          <ProductImage
+            src={product.image}
             alt={product.name}
+            priority
+            className="editorial-card__image"
           />
         </div>
         <div className="editorial-card__caption">
@@ -218,11 +219,11 @@ function ArchedBrandedCard({ product }) {
         ref={parallaxRef}
       >
         <div className="editorial-card__media">
-          <img
-            className="editorial-card__image"
-            src={asset(product.image)}
+          <ProductImage
+            src={product.image}
             alt={product.name}
-            loading="lazy"
+            size="sm"
+            className="editorial-card__image"
           />
         </div>
         <div className="editorial-card__caption">

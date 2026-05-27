@@ -162,6 +162,19 @@
   will-change: transform;
 }
 
+/* The ProductImage component renders a <picture> wrapper around <img>.
+   Make the wrapper fill its container so layout stays the same as a
+   bare <img>. */
+.editorial-card__media picture,
+.product-card__image-wrapper picture,
+.product-detail__image-wrapper picture,
+.home-wide-banner__imgwrap picture,
+.home-mosaic__item picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Subtle hover zoom on the inner image only — leaves the card's parallax
    transform on the outer element untouched so scroll responsiveness is
    never compromised. */

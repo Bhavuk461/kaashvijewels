@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
+import ProductImage from '../components/ProductImage';
 import ParallaxProvider from '../hooks/ParallaxProvider';
 import useReveal from '../hooks/useReveal';
 import HeroEditorialSection from './HeroEditorialSection';
@@ -148,10 +149,9 @@ function HomeContent() {
         <RevealSection className="home-wide-banner">
           <div className="home-wide-banner__grid">
             <div className="home-wide-banner__imgwrap">
-              <img
-                src={asset(wideBanner.left.image)}
+              <ProductImage
+                src={wideBanner.left.image}
                 alt={wideBanner.left.name}
-                loading="lazy"
               />
             </div>
             <div className="home-wide-banner__content">
@@ -169,10 +169,9 @@ function HomeContent() {
               </Link>
             </div>
             <div className="home-wide-banner__imgwrap">
-              <img
-                src={asset(wideBanner.right.image)}
+              <ProductImage
+                src={wideBanner.right.image}
                 alt={wideBanner.right.name}
-                loading="lazy"
               />
             </div>
           </div>
@@ -221,7 +220,7 @@ function HomeContent() {
                 idx === 0 || idx === 3 ? ' home-mosaic__item--tall' : ''
               }`}
             >
-              <img src={asset(p.image)} alt={p.name} loading="lazy" />
+              <ProductImage src={p.image} alt={p.name} size="sm" />
               <div className="home-mosaic__overlay">
                 <span>{p.name}</span>
                 <span>₹{p.price}</span>

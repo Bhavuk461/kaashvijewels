@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { asset } from '../utils/assetPath';
+import ProductImage from './ProductImage';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
@@ -14,17 +14,17 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <Link 
-      to={`/product/${product.id}`} 
-      className="product-card" 
+    <Link
+      to={`/product/${product.id}`}
+      className="product-card"
       id={`product-card-${product.id}`}
     >
       <div className="product-card__image-wrapper">
-        <img
-          src={asset(product.image)}
+        <ProductImage
+          src={product.image}
           alt={product.name}
+          size="sm"
           className="product-card__image"
-          loading="lazy"
         />
         {product.badge && (
           <span className={`product-card__badge product-card__badge--${product.badge.toLowerCase()}`}>
