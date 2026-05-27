@@ -22,3 +22,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Raw product photo masters (originals are kept locally, optimized
+# variants live under public/images/products/ and ship to the site).
+product photos/
