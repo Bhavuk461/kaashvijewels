@@ -47,15 +47,15 @@ export function selectHeroProducts(products) {
   const korean = safe.filter((p) => p && p.category === 'korean');
 
   return {
-    // Golden Jasmine Petal Studs
+    // Anti-tarnish floral statement (Bestseller)
     leftAvatar: pickById(safe, 'at-01', antiTarnish[0] || null),
-    // Crystal Cherry Blossom (Bestseller)
+    // Korean delicate piece (Bestseller)
     leftOval: pickById(safe, 'kr-03', korean[0] || null),
-    // Golden Cascading Flower (Bestseller)
+    // Anti-tarnish flagship (Bestseller cascading flower)
     centerHero: pickById(safe, 'at-05', antiTarnish[0] || null),
-    // Double Butterfly (Bestseller)
+    // Anti-tarnish butterfly (Bestseller)
     rightCard: pickById(safe, 'at-11', antiTarnish[1] || antiTarnish[0] || null),
-    // Pearl Cluster Square (Bestseller)
+    // Korean pearl cluster (Bestseller)
     rightOval: pickById(safe, 'kr-06', korean[1] || korean[0] || null),
   };
 }

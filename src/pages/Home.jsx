@@ -75,6 +75,29 @@ function HomeContent() {
   const bestsellers = products.filter((p) => p.badge === 'Bestseller');
   const newArrivals = products.filter((p) => p.badge === 'New');
 
+  // Pick a featured pair for the wide banner — prefer a Bestseller anti-tarnish
+  // with a complementary second piece. Falls back gracefully if either is missing.
+  const wideBannerLeft =
+    antiTarnish.find((p) => p.badge === 'Bestseller') || antiTarnish[0] || null;
+  const wideBannerRight =
+    antiTarnish
+      .filter((p) => p !== wideBannerLeft)
+      .find((p) => p.badge === 'Bestseller') ||
+    antiTarnish.find((p) => p !== wideBannerLeft) ||
+    null;
+  const wideBanner = { left: wideBannerLeft, right: wideBannerRight };
+
+  // Six-card mosaic — alternates anti-tarnish picks for visual variety,
+  // skipping any indexes that do not exist in the catalogue.
+  const mosaicProducts = [
+    antiTarnish[0],
+    antiTarnish[2],
+    antiTarnish[5],
+    antiTarnish[7],
+    antiTarnish[9],
+    antiTarnish[11],
+  ].filter(Boolean);
+
   return (
     <>
       {/* ═══ Editorial Hero (replaces the legacy two-panel banner) ═══ */}
@@ -121,35 +144,40 @@ function HomeContent() {
       </RevealSection>
 
       {/* ═══ Wide Banner ═══ */}
-      <RevealSection className="home-wide-banner">
-        <div className="home-wide-banner__grid">
-          <div className="home-wide-banner__imgwrap">
-            <img
-              src={asset('/images/products/anti-tarnish/at-11.png')}
-              alt="Butterfly Studs"
-              loading="lazy"
-            />
+      {wideBanner.left && wideBanner.right && (
+        <RevealSection className="home-wide-banner">
+          <div className="home-wide-banner__grid">
+            <div className="home-wide-banner__imgwrap">
+              <img
+                src={asset(wideBanner.left.image)}
+                alt={wideBanner.left.name}
+                loading="lazy"
+              />
+            </div>
+            <div className="home-wide-banner__content">
+              <span className="home-wide-banner__tag">Featured</span>
+              <h2>{wideBanner.left.name}</h2>
+              <p>
+                Our most-loved design — sculpted with detailed texture and a
+                lustrous gold-plated finish that resists tarnishing.
+              </p>
+              <Link
+                to={`/product/${wideBanner.left.id}`}
+                className="btn btn-primary btn-lg"
+              >
+                Shop This Look →
+              </Link>
+            </div>
+            <div className="home-wide-banner__imgwrap">
+              <img
+                src={asset(wideBanner.right.image)}
+                alt={wideBanner.right.name}
+                loading="lazy"
+              />
+            </div>
           </div>
-          <div className="home-wide-banner__content">
-            <span className="home-wide-banner__tag">Featured</span>
-            <h2>Golden Double Butterfly Studs</h2>
-            <p>
-              Our most-loved design — two butterflies stacked with detailed
-              ribbed wing texture. A symbol of transformation and beauty.
-            </p>
-            <Link to="/product/at-11" className="btn btn-primary btn-lg">
-              Shop This Look →
-            </Link>
-          </div>
-          <div className="home-wide-banner__imgwrap">
-            <img
-              src={asset('/images/products/anti-tarnish/at-16.png')}
-              alt="Double Star Dangles"
-              loading="lazy"
-            />
-          </div>
-        </div>
-      </RevealSection>
+        </RevealSection>
+      )}
 
       {/* ═══ Bestsellers Strip (conditional) ═══ */}
       {bestsellers.length > 0 && <Strip title="Bestsellers" items={bestsellers} />}
@@ -183,79 +211,30 @@ function HomeContent() {
       </RevealSection>
 
       {/* ═══ Product Mosaic ═══ */}
-      <RevealSection className="home-mosaic">
-        <Link to="/product/at-01" className="home-mosaic__item home-mosaic__item--tall">
-          <img
-            src={asset('/images/products/anti-tarnish/at-01.png')}
-            alt={products[0].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[0].name}</span>
-            <span>₹{products[0].price}</span>
-          </div>
-        </Link>
-        <Link to="/product/at-03" className="home-mosaic__item">
-          <img
-            src={asset('/images/products/anti-tarnish/at-03.png')}
-            alt={products[2].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[2].name}</span>
-            <span>₹{products[2].price}</span>
-          </div>
-        </Link>
-        <Link to="/product/at-09" className="home-mosaic__item">
-          <img
-            src={asset('/images/products/anti-tarnish/at-09.png')}
-            alt={products[8].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[8].name}</span>
-            <span>₹{products[8].price}</span>
-          </div>
-        </Link>
-        <Link to="/product/at-15" className="home-mosaic__item home-mosaic__item--tall">
-          <img
-            src={asset('/images/products/anti-tarnish/at-15.png')}
-            alt={products[14].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[14].name}</span>
-            <span>₹{products[14].price}</span>
-          </div>
-        </Link>
-        <Link to="/product/at-14" className="home-mosaic__item">
-          <img
-            src={asset('/images/products/anti-tarnish/at-14.png')}
-            alt={products[13].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[13].name}</span>
-            <span>₹{products[13].price}</span>
-          </div>
-        </Link>
-        <Link to="/product/at-07" className="home-mosaic__item">
-          <img
-            src={asset('/images/products/anti-tarnish/at-07.png')}
-            alt={products[6].name}
-            loading="lazy"
-          />
-          <div className="home-mosaic__overlay">
-            <span>{products[6].name}</span>
-            <span>₹{products[6].price}</span>
-          </div>
-        </Link>
-      </RevealSection>
+      {mosaicProducts.length >= 6 && (
+        <RevealSection className="home-mosaic">
+          {mosaicProducts.map((p, idx) => (
+            <Link
+              key={p.id}
+              to={`/product/${p.id}`}
+              className={`home-mosaic__item${
+                idx === 0 || idx === 3 ? ' home-mosaic__item--tall' : ''
+              }`}
+            >
+              <img src={asset(p.image)} alt={p.name} loading="lazy" />
+              <div className="home-mosaic__overlay">
+                <span>{p.name}</span>
+                <span>₹{p.price}</span>
+              </div>
+            </Link>
+          ))}
+        </RevealSection>
+      )}
 
       {/* ═══ Browse All CTA ═══ */}
       <RevealSection className="home-browse-cta">
         <h2>Explore the Full Collection</h2>
-        <p>28 exquisite designs crafted for every occasion</p>
+        <p>{products.length} exquisite designs crafted for every occasion</p>
         <Link to="/shop" className="btn btn-primary btn-lg">
           Shop All Earrings →
         </Link>

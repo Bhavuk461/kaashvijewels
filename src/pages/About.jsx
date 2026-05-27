@@ -55,7 +55,7 @@ export default function About() {
           <div className="about-grid">
             <div className="about-image">
               <img
-                src={asset('/images/products/anti-tarnish/at-05.png')}
+                src={asset('/images/products/anti-tarnish/at-05.jpg')}
                 alt="The Kaashvi Jewels — Our Story"
               />
             </div>
@@ -85,7 +85,7 @@ export default function About() {
           <div className="about-grid about-grid--reverse">
             <div className="about-image">
               <img
-                src={asset('/images/products/korean/kr-06.png')}
+                src={asset('/images/products/korean/kr-06.jpg')}
                 alt="Craftsmanship at The Kaashvi Jewels"
               />
             </div>
