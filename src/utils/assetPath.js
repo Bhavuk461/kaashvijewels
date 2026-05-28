@@ -1,7 +1,7 @@
 /**
  * Prepend Vite's base URL to public asset paths.
- * In development BASE_URL is "/", in production it is "/kaashvijewels/".
- * Usage: asset('/images/logo.png') → '/kaashvijewels/images/logo.png'
+ * BASE_URL is "/" in dev and in production (custom apex domain thekaashvijewels.com).
+ * Usage: asset('/images/logo.png') → '/images/logo.png'
  */
 const base = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL.slice(0, -1)
