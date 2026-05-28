@@ -932,6 +932,34 @@ h4 { font-size: 1.25rem; }
   transform: translateY(-3px);
 }
 
+/* Designer credit — reference: designlooms.studio */
+.footer__credit {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  text-align: center;
+}
+
+.footer__credit-link {
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color var(--transition-fast), letter-spacing var(--transition-base);
+  display: inline-block;
+}
+
+.footer__credit-link:hover,
+.footer__credit-link:focus-visible {
+  color: var(--color-primary);
+  letter-spacing: 0.42em;
+}
+
+.footer__credit-dot {
+  color: var(--color-primary);
+}
+
 /* ─── Shop Page ─── */
 .shop-header {
   background: var(--gradient-hero);

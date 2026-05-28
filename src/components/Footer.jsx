@@ -87,6 +87,18 @@ export default function Footer() {
             </a>
           </div>
         </div>
+
+        <div className="footer__credit">
+          <a
+            href="https://designlooms.studio"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer__credit-link"
+            aria-label="Website designed by Designlooms Studio"
+          >
+            DESIGNLOOMS<span className="footer__credit-dot">.</span>STUDIO
+          </a>
+        </div>
       </div>
     </footer>
   );
