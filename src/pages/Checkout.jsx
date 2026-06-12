@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
+const WORKER_URL = import.meta.env.VITE_WORKER_URL;
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, getCartTotal, clearCart, showToast } = useCart();
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -17,7 +20,7 @@ export default function Checkout() {
     pincode: '',
   });
 
-  // ── Derived totals ──
+  // ── Derived totals (display only; the Worker re-validates these) ──
   const subtotal = getCartTotal();
   const gst = Math.round(subtotal * 0.18);
   const shipping = subtotal > 499 ? 0 : 49;
@@ -50,17 +53,14 @@ export default function Checkout() {
         return false;
       }
     }
-    // Basic email validation
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       showToast('Please enter a valid email address', 'error');
       return false;
     }
-    // Basic phone validation (10 digits)
     if (!/^\d{10}$/.test(formData.phone.replace(/\s/g, ''))) {
       showToast('Please enter a valid 10-digit phone number', 'error');
       return false;
     }
-    // Basic pincode validation (6 digits)
     if (!/^\d{6}$/.test(formData.pincode.replace(/\s/g, ''))) {
       showToast('Please enter a valid 6-digit pincode', 'error');
       return false;
@@ -68,37 +68,93 @@ export default function Checkout() {
     return true;
   };
 
-  // ── Razorpay payment ──
-  const handlePayment = () => {
+  // ── Razorpay payment flow (create order -> checkout -> verify) ──
+  const handlePayment = async () => {
     if (!validateForm()) return;
+    if (!WORKER_URL) {
+      showToast('Payment is not configured. Please try again later.', 'error');
+      return;
+    }
+    if (!window.Razorpay) {
+      showToast('Payment library failed to load. Refresh and retry.', 'error');
+      return;
+    }
 
-    const options = {
-      key: 'rzp_test_PLACEHOLDER',
-      amount: total * 100,
-      currency: 'INR',
-      name: 'The Kaashvi Jewels',
-      description: 'Jewellery Purchase',
-      image: '/images/logo.png',
-      handler: function (response) {
-        showToast(
-          'Payment successful! Order ID: ' + response.razorpay_payment_id,
-          'success'
-        );
-        clearCart();
-        navigate('/');
-      },
-      prefill: {
-        name: formData.firstName + ' ' + formData.lastName,
-        email: formData.email,
-        contact: formData.phone,
-      },
-      theme: {
-        color: '#C07A8E',
-      },
-    };
+    const items = cart.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+    setSubmitting(true);
+    try {
+      // 1) Create the order server-side.
+      const orderRes = await fetch(`${WORKER_URL}/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      if (!orderRes.ok) throw new Error('create-order failed');
+      const { orderId, amount, currency, keyId } = await orderRes.json();
+
+      // 2) Open Razorpay checkout.
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        order_id: orderId,
+        name: 'The Kaashvi Jewels',
+        description: 'Jewellery Purchase',
+        image: '/images/logo.png',
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: { color: '#C07A8E' },
+        handler: async function (response) {
+          // 3) Verify the payment signature server-side.
+          try {
+            const verifyRes = await fetch(`${WORKER_URL}/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                customer: formData,
+                items,
+              }),
+            });
+            if (!verifyRes.ok) throw new Error('verify failed');
+            showToast('Payment successful! Your order is confirmed.', 'success');
+            clearCart();
+            navigate('/');
+          } catch {
+            showToast(
+              'Payment captured but verification failed. We will contact you.',
+              'error'
+            );
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            showToast('Payment cancelled.', 'info');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function () {
+        showToast('Payment failed. Please try again.', 'error');
+      });
+      rzp.open();
+    } catch {
+      showToast('Could not start payment. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ── Empty cart state ──
@@ -235,7 +291,6 @@ export default function Checkout() {
           <div className="cart-summary">
             <h3 className="cart-summary__title">Order Summary</h3>
 
-            {/* Cart items mini list */}
             {cart.map((item) => (
               <div
                 key={item.id}
@@ -278,8 +333,9 @@ export default function Checkout() {
               className="btn btn-gold btn-lg"
               style={{ width: '100%', marginTop: 'var(--space-xl)' }}
               onClick={handlePayment}
+              disabled={submitting}
             >
-              💳 Pay with Razorpay
+              {submitting ? 'Processing…' : '💳 Pay with Razorpay'}
             </button>
 
             <p
