@@ -11,4 +11,4 @@ compatibility_date = "2024-11-01"
 #
 # ALLOWED_ORIGIN is the public URL of your frontend (e.g. https://krishnahaha27-group.github.io)
 [vars]
-ALLOWED_ORIGIN = "https://krishnahaha27-group.github.io"
+ALLOWED_ORIGIN = "https://thekaashvijewels.com"
