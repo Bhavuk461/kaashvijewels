@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useProductOverrides } from '../context/ProductOverridesContext';
 import ProductImage from './ProductImage';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const { getProductPrice, isOutOfStock } = useProductOverrides();
 
   const categoryLabel =
     product.category === 'anti-tarnish'
@@ -12,16 +14,20 @@ export default function ProductCard({ product }) {
         ? 'Bracelet'
         : 'Korean';
 
+  const displayPrice = getProductPrice(product);
+  const outOfStock = isOutOfStock(product.id);
+
   const handleQuickAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product, 1);
+    if (outOfStock) return;
+    addToCart({ ...product, price: displayPrice }, 1);
   };
 
   return (
     <Link
       to={`/product/${product.id}`}
-      className="product-card"
+      className={`product-card${outOfStock ? ' product-card--out-of-stock' : ''}`}
       id={`product-card-${product.id}`}
     >
       <div className="product-card__image-wrapper">
@@ -31,25 +37,38 @@ export default function ProductCard({ product }) {
           size="sm"
           className="product-card__image"
         />
-        {product.badge && (
+        {outOfStock && (
+          <span className="product-card__badge product-card__badge--out-of-stock">
+            Out of Stock
+          </span>
+        )}
+        {!outOfStock && product.badge && (
           <span className={`product-card__badge product-card__badge--${product.badge.toLowerCase()}`}>
             {product.badge}
           </span>
         )}
-        <button
-          className="product-card__quick-add btn btn-primary btn-sm"
-          onClick={handleQuickAdd}
-          id={`quick-add-${product.id}`}
-        >
-          🛒 Add to Cart
-        </button>
+        {!outOfStock && (
+          <button
+            className="product-card__quick-add btn btn-primary btn-sm"
+            onClick={handleQuickAdd}
+            id={`quick-add-${product.id}`}
+          >
+            🛒 Add to Cart
+          </button>
+        )}
       </div>
       <div className="product-card__info">
         <p className="product-card__category">{categoryLabel}</p>
         <h3 className="product-card__name">{product.name}</h3>
         <p className="product-card__price">
-          ₹{product.price}
-          <span>MRP incl. taxes</span>
+          {outOfStock ? (
+            <span className="product-card__sold-out">Sold Out</span>
+          ) : (
+            <>
+              ₹{displayPrice}
+              <span>MRP incl. taxes</span>
+            </>
+          )}
         </p>
       </div>
     </Link>

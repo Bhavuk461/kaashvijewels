@@ -1,166 +1,298 @@
+// ============================================================
+// Kaashvi Admin API — Cloudflare Worker
+// Manages product-override data stored in Workers KV.
+// ============================================================
+
+// --------------- CORS configuration ---------------
+
+const ALLOWED_ORIGINS = [
+  'https://thekaashvijewels.com',
+  'https://bhavuk461.github.io',
+  'http://localhost:5173',
+];
+
 /**
- * Cloudflare Worker for The Kaashvi Jewels payments.
- *
- * Routes:
- *   POST /create-order  -> creates a Razorpay order (server-side, uses secret)
- *   POST /verify        -> verifies payment signature, then forwards to Apps Script
- *   POST /webhook       -> Razorpay webhook backup (verifies webhook signature)
- *
- * Secrets (set via `wrangler secret put`):
- *   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
- *   APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN
- * Vars (wrangler.toml):
- *   ALLOWED_ORIGIN
+ * Build CORS headers for a given request origin.
+ * Returns null if the origin is not allowed.
  */
-
-const encoder = new TextEncoder();
-
-function corsHeaders(env) {
+function corsHeaders(origin) {
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return null;
   return {
-    'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
   };
 }
 
-function json(data, env, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(env) },
-  });
+/** Respond to an OPTIONS preflight request. */
+function handleOptions(request) {
+  const origin = request.headers.get('Origin');
+  const headers = corsHeaders(origin);
+  if (!headers) return new Response(null, { status: 403 });
+  return new Response(null, { status: 204, headers });
 }
 
-/** HMAC-SHA256 -> hex string */
-async function hmacHex(secret, message) {
-  const key = await crypto.subtle.importKey(
+/** Helper: create a JSON response with optional CORS headers. */
+function jsonResponse(body, status, origin) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(origin ? corsHeaders(origin) : {}),
+  };
+  return new Response(JSON.stringify(body), { status, headers });
+}
+
+// --------------- Crypto helpers (Web Crypto API) ---------------
+
+/** Compute the SHA-256 hex digest of a string. */
+async function sha256Hex(message) {
+  const data = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Base64url-encode a string (no padding). */
+function base64urlEncode(str) {
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Base64url-decode a string back to the original. */
+function base64urlDecode(str) {
+  // Restore standard base64 characters and padding
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4 !== 0) base64 += '=';
+  return atob(base64);
+}
+
+/**
+ * Import `secret` as an HMAC-SHA256 CryptoKey.
+ * Used for both signing and verifying JWT tokens.
+ */
+async function getHmacKey(secret) {
+  const keyData = new TextEncoder().encode(secret);
+  return crypto.subtle.importKey(
     'raw',
-    encoder.encode(secret),
+    keyData,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign']
+    ['sign', 'verify'],
   );
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Constant-time string compare */
-function safeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
+/** Sign data with HMAC-SHA256 and return the base64url-encoded signature. */
+async function hmacSign(data, secret) {
+  const key = await getHmacKey(secret);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  // Convert ArrayBuffer → base64url
+  const bytes = Array.from(new Uint8Array(sig));
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Re-validate totals server-side so the client cannot tamper the amount. */
-function computeTotals(items) {
-  const subtotal = items.reduce((sum, it) => sum + Number(it.price) * Number(it.quantity), 0);
-  const gst = Math.round(subtotal * 0.18);
-  const shipping = subtotal > 499 ? 0 : 49;
-  const total = subtotal + gst + shipping;
-  return { subtotal, gst, shipping, total };
+/** Verify an HMAC-SHA256 signature. Returns true/false. */
+async function hmacVerify(data, signature, secret) {
+  const key = await getHmacKey(secret);
+  // Decode the base64url signature back to an ArrayBuffer
+  let base64 = signature.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4 !== 0) base64 += '=';
+  const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
 }
 
-async function forwardToAppsScript(env, payload) {
-  const res = await fetch(env.APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: env.APPS_SCRIPT_TOKEN, ...payload }),
-  });
-  return res.ok;
+// --------------- JWT helpers ---------------
+
+/**
+ * Create a signed JWT token.
+ * Format: header.payload.signature  (all base64url-encoded)
+ */
+async function createToken(jwtSecret) {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const payload = {
+    sub: 'admin',
+    iat: Date.now(),
+    exp: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+  };
+
+  const encodedHeader = base64urlEncode(JSON.stringify(header));
+  const encodedPayload = base64urlEncode(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+  const signature = await hmacSign(signingInput, jwtSecret);
+
+  return `${signingInput}.${signature}`;
 }
 
-async function createOrder(request, env) {
-  const body = await request.json();
-  const items = Array.isArray(body.items) ? body.items : [];
-  if (items.length === 0) return json({ error: 'Empty cart' }, env, 400);
+/**
+ * Verify and decode a JWT token.
+ * Returns the payload object on success, or null on failure.
+ */
+async function verifyToken(token, jwtSecret) {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
 
-  const { total } = computeTotals(items);
-  const auth = btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`);
+  const [encodedHeader, encodedPayload, signature] = parts;
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
 
-  const res = await fetch('https://api.razorpay.com/v1/orders', {
-    method: 'POST',
-    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      amount: total * 100, // paise
-      currency: 'INR',
-      receipt: `rcpt_${Date.now()}`,
-      notes: { source: 'kaashvi-web' },
-    }),
-  });
+  // Verify HMAC signature
+  const valid = await hmacVerify(signingInput, signature, jwtSecret);
+  if (!valid) return null;
 
-  if (!res.ok) {
-    const errText = await res.text();
-    return json({ error: 'Failed to create order', detail: errText }, env, 502);
+  // Decode and check expiry
+  try {
+    const payload = JSON.parse(base64urlDecode(encodedPayload));
+    if (!payload.exp || payload.exp < Date.now()) return null; // expired
+    return payload;
+  } catch {
+    return null;
   }
-  const order = await res.json();
-  return json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: env.RAZORPAY_KEY_ID }, env);
 }
 
-async function verify(request, env) {
-  const body = await request.json();
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, customer, items } = body;
+// --------------- Route handlers ---------------
 
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return json({ error: 'Missing payment fields' }, env, 400);
-  }
-
-  const expected = await hmacHex(env.RAZORPAY_KEY_SECRET, `${razorpay_order_id}|${razorpay_payment_id}`);
-  if (!safeEqual(expected, razorpay_signature)) {
-    return json({ error: 'Invalid signature' }, env, 400);
-  }
-
-  const totals = computeTotals(Array.isArray(items) ? items : []);
-  await forwardToAppsScript(env, {
-    event: 'payment.verified',
-    orderId: razorpay_order_id,
-    paymentId: razorpay_payment_id,
-    customer: customer || {},
-    items: items || [],
-    totals,
-    status: 'PAID',
-  });
-
-  return json({ ok: true }, env);
-}
-
-async function webhook(request, env) {
-  const raw = await request.text();
-  const signature = request.headers.get('x-razorpay-signature') || '';
-  const expected = await hmacHex(env.RAZORPAY_WEBHOOK_SECRET, raw);
-  if (!safeEqual(expected, signature)) {
-    return new Response('Invalid signature', { status: 400 });
+/**
+ * POST /api/login
+ * Authenticate with username + password, receive a JWT.
+ */
+async function handleLogin(request, env, origin) {
+  // Parse request body
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
   }
 
-  const evt = JSON.parse(raw);
-  if (evt.event === 'payment.captured') {
-    const p = evt.payload.payment.entity;
-    await forwardToAppsScript(env, {
-      event: 'payment.captured.webhook',
-      orderId: p.order_id,
-      paymentId: p.id,
-      customer: { email: p.email, phone: p.contact },
-      items: [],
-      totals: { total: p.amount / 100 },
-      status: 'PAID',
-    });
+  const { username, password } = body || {};
+
+  if (!username || !password) {
+    return jsonResponse({ error: 'Missing username or password' }, 400, origin);
   }
-  return new Response('ok', { status: 200 });
+
+  // Check username (case-sensitive)
+  if (username !== 'Admin') {
+    return jsonResponse({ error: 'Invalid credentials' }, 401, origin);
+  }
+
+  // Hash the provided password and compare with stored hash
+  const passwordHash = await sha256Hex(password);
+  if (passwordHash !== env.ADMIN_PASSWORD_HASH) {
+    return jsonResponse({ error: 'Invalid credentials' }, 401, origin);
+  }
+
+  // Issue a JWT
+  const token = await createToken(env.JWT_SECRET);
+  return jsonResponse({ token }, 200, origin);
 }
+
+/**
+ * GET /api/overrides
+ * Public endpoint — returns all product overrides from KV.
+ */
+async function handleGetOverrides(env, origin) {
+  const overrides = {};
+
+  // KV list returns keys in pages; iterate through all of them.
+  let cursor = null;
+  do {
+    const listResult = await env.PRODUCT_OVERRIDES.list({ cursor });
+    for (const key of listResult.keys) {
+      const value = await env.PRODUCT_OVERRIDES.get(key.name, { type: 'json' });
+      if (value !== null) {
+        overrides[key.name] = value;
+      }
+    }
+    cursor = listResult.list_complete ? null : listResult.cursor;
+  } while (cursor);
+
+  const response = jsonResponse({ overrides }, 200, origin);
+  response.headers.set('Cache-Control', 'public, max-age=30');
+  return response;
+}
+
+/**
+ * POST /api/update
+ * Protected endpoint — update a single product override in KV.
+ */
+async function handleUpdate(request, env, origin) {
+  // ---- Authenticate ----
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Missing or malformed Authorization header' }, 401, origin);
+  }
+
+  const token = authHeader.slice(7); // strip "Bearer "
+  const payload = await verifyToken(token, env.JWT_SECRET);
+  if (!payload) {
+    return jsonResponse({ error: 'Invalid or expired token' }, 401, origin);
+  }
+
+  // ---- Parse body ----
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
+  }
+
+  const { productId, price, outOfStock } = body || {};
+
+  if (!productId || typeof productId !== 'string') {
+    return jsonResponse({ error: 'Missing or invalid productId' }, 400, origin);
+  }
+
+  // Build the override value (only include provided fields)
+  const override = {};
+  if (price !== undefined) {
+    if (typeof price !== 'number' || price < 0) {
+      return jsonResponse({ error: 'price must be a non-negative number' }, 400, origin);
+    }
+    override.price = price;
+  }
+  if (outOfStock !== undefined) {
+    if (typeof outOfStock !== 'boolean') {
+      return jsonResponse({ error: 'outOfStock must be a boolean' }, 400, origin);
+    }
+    override.outOfStock = outOfStock;
+  }
+
+  if (Object.keys(override).length === 0) {
+    return jsonResponse({ error: 'No fields to update (provide price and/or outOfStock)' }, 400, origin);
+  }
+
+  // ---- Write to KV ----
+  await env.PRODUCT_OVERRIDES.put(productId, JSON.stringify(override));
+
+  return jsonResponse({ success: true }, 200, origin);
+}
+
+// --------------- Main router ---------------
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(env) });
-    }
     const url = new URL(request.url);
-    try {
-      if (request.method === 'POST' && url.pathname === '/create-order') return await createOrder(request, env);
-      if (request.method === 'POST' && url.pathname === '/verify') return await verify(request, env);
-      if (request.method === 'POST' && url.pathname === '/webhook') return await webhook(request, env);
-      return json({ error: 'Not found' }, env, 404);
-    } catch (err) {
-      return json({ error: 'Server error', detail: String(err) }, env, 500);
+    const { pathname } = url;
+    const method = request.method;
+    const origin = request.headers.get('Origin');
+
+    // Handle CORS preflight
+    if (method === 'OPTIONS') {
+      return handleOptions(request);
     }
+
+    // Route dispatch
+    if (pathname === '/api/login' && method === 'POST') {
+      return handleLogin(request, env, origin);
+    }
+
+    if (pathname === '/api/overrides' && method === 'GET') {
+      return handleGetOverrides(env, origin);
+    }
+
+    if (pathname === '/api/update' && method === 'POST') {
+      return handleUpdate(request, env, origin);
+    }
+
+    // Fallback — 404
+    return jsonResponse({ error: 'Not found' }, 404, origin);
   },
 };

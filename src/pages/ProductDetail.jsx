@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useProductOverrides } from '../context/ProductOverridesContext';
 import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
@@ -11,6 +12,7 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const { getProductPrice, isOutOfStock } = useProductOverrides();
 
   // Find product by id
   const product = products.find((p) => p.id === id);
@@ -56,14 +58,19 @@ export default function ProductDetail() {
     setQuantity((prev) => (prev < 10 ? prev + 1 : 10));
   };
 
+  const displayPrice = getProductPrice(product);
+  const outOfStock = isOutOfStock(product.id);
+
   // ── Add to cart ──
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    if (outOfStock) return;
+    addToCart({ ...product, price: displayPrice }, quantity);
   };
 
   // ── Buy now → add to cart + navigate to checkout ──
   const handleBuyNow = () => {
-    addToCart(product, quantity);
+    if (outOfStock) return;
+    addToCart({ ...product, price: displayPrice }, quantity);
     navigate('/checkout');
   };
 
@@ -114,7 +121,13 @@ export default function ProductDetail() {
           <div className="product-detail__info">
             <p className="product-detail__category">{categoryLabel} Collection</p>
             <h1 className="product-detail__name">{product.name}</h1>
-            <p className="product-detail__price">₹{product.price}</p>
+            <p className="product-detail__price">
+              {outOfStock ? (
+                <span style={{ color: '#c0392b', fontWeight: 700 }}>Out of Stock</span>
+              ) : (
+                <>₹{displayPrice}</>
+              )}
+            </p>
             <p className="product-detail__description">{product.description}</p>
 
             {/* Meta Info */}
@@ -134,27 +147,37 @@ export default function ProductDetail() {
             </div>
 
             {/* Quantity Selector */}
-            <div className="product-detail__quantity">
-              <span className="product-detail__quantity-label">Quantity:</span>
-              <div className="quantity-controls">
-                <button onClick={decreaseQuantity} aria-label="Decrease quantity">
-                  −
-                </button>
-                <span>{quantity}</span>
-                <button onClick={increaseQuantity} aria-label="Increase quantity">
-                  +
-                </button>
+            {!outOfStock && (
+              <div className="product-detail__quantity">
+                <span className="product-detail__quantity-label">Quantity:</span>
+                <div className="quantity-controls">
+                  <button onClick={decreaseQuantity} aria-label="Decrease quantity">
+                    −
+                  </button>
+                  <span>{quantity}</span>
+                  <button onClick={increaseQuantity} aria-label="Increase quantity">
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="product-detail__actions">
-              <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
-                🛒 Add to Cart
-              </button>
-              <button className="btn btn-gold btn-lg" onClick={handleBuyNow}>
-                ⚡ Buy Now
-              </button>
+              {outOfStock ? (
+                <button className="btn btn-lg" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  🚫 Out of Stock
+                </button>
+              ) : (
+                <>
+                  <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
+                    🛒 Add to Cart
+                  </button>
+                  <button className="btn btn-gold btn-lg" onClick={handleBuyNow}>
+                    ⚡ Buy Now
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

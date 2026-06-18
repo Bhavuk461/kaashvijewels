@@ -373,6 +373,20 @@ h4 { font-size: 1.25rem; }
   color: var(--color-text-inverse);
 }
 
+.product-card__badge--out-of-stock {
+  background: linear-gradient(135deg, #c0392b 0%, #8e2222 100%);
+  color: #fff;
+}
+
+.product-card--out-of-stock .product-card__image {
+  filter: grayscale(0.4) opacity(0.7);
+}
+
+.product-card__sold-out {
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
 .product-card__quick-add {
   position: absolute;
   bottom: 12px;

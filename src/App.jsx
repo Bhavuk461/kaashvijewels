@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
+import { ProductOverridesProvider } from './context/ProductOverridesContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -10,6 +11,8 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
 function ScrollToTop() {
@@ -31,10 +34,13 @@ function Toast() {
 }
 
 function AppLayout() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
     <>
       <ScrollToTop />
-      <Navbar />
+      {!isAdmin && <Navbar />}
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -44,10 +50,12 @@ function AppLayout() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </main>
-      <Footer />
-      <Toast />
+      {!isAdmin && <Footer />}
+      {!isAdmin && <Toast />}
     </>
   );
 }
@@ -55,9 +63,11 @@ function AppLayout() {
 export default function App() {
   return (
     <HashRouter>
-      <CartProvider>
-        <AppLayout />
-      </CartProvider>
+      <ProductOverridesProvider>
+        <CartProvider>
+          <AppLayout />
+        </CartProvider>
+      </ProductOverridesProvider>
     </HashRouter>
   );
 }
