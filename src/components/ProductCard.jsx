@@ -5,7 +5,12 @@ import ProductImage from './ProductImage';
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
-  const categoryLabel = product.category === 'anti-tarnish' ? 'Anti-Tarnish' : 'Korean';
+  const categoryLabel =
+    product.category === 'anti-tarnish'
+      ? 'Anti-Tarnish'
+      : product.category === 'bracelet'
+        ? 'Bracelet'
+        : 'Korean';
 
   const handleQuickAdd = (e) => {
     e.preventDefault();

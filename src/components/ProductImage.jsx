@@ -32,11 +32,16 @@ export default function ProductImage({
 
   // Strip the extension so we can build sister URLs for .webp and -sm.webp.
   const dot = src.lastIndexOf('.');
+  const ext = dot >= 0 ? src.slice(dot) : '';
   const stem = dot >= 0 ? src.slice(0, dot) : src;
 
+  // If the source is already .webp (e.g. bracelet images), use it directly —
+  // there are no -sm.webp thumbnails or .jpg fallbacks for these files.
+  const isNativeWebp = ext === '.webp';
+
   const webpFull = asset(`${stem}.webp`);
-  const webpSmall = asset(`${stem}-sm.webp`);
-  const jpgFallback = asset(`${stem}.jpg`);
+  const webpSmall = isNativeWebp ? webpFull : asset(`${stem}-sm.webp`);
+  const jpgFallback = isNativeWebp ? webpFull : asset(`${stem}.jpg`);
 
   // Pick the WebP source: small thumbnail when the consumer asks for it
   // (grid cards, mosaic small tiles), full quality otherwise.
