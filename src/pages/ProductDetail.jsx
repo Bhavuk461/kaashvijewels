@@ -10,6 +10,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
 
   // Find product by id
   const product = products.find((p) => p.id === id);
@@ -35,7 +36,16 @@ export default function ProductDetail() {
   }
 
   const categoryLabel =
-    product.category === 'anti-tarnish' ? 'Anti-Tarnish' : 'Korean';
+    product.category === 'anti-tarnish'
+      ? 'Anti-Tarnish'
+      : product.category === 'bracelet'
+        ? 'Bracelet'
+        : 'Korean';
+
+  // Build the list of images for the gallery
+  const allImages = product.images && product.images.length > 0
+    ? product.images
+    : [product.image];
 
   // ── Quantity handlers ──
   const decreaseQuantity = () => {
@@ -76,14 +86,28 @@ export default function ProductDetail() {
 
         {/* ── Product Grid ── */}
         <div className="product-detail__grid">
-          {/* Left: Image */}
+          {/* Left: Image Gallery */}
           <div className="product-detail__image-wrapper">
             <ProductImage
-              src={product.image}
+              src={allImages[selectedImage]}
               alt={product.name}
               priority
               className="product-detail__image"
             />
+            {allImages.length > 1 && (
+              <div className="product-detail__thumbnails">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    className={`product-detail__thumb${idx === selectedImage ? ' product-detail__thumb--active' : ''}`}
+                    onClick={() => setSelectedImage(idx)}
+                    aria-label={`View image ${idx + 1}`}
+                  >
+                    <ProductImage src={img} alt={`${product.name} view ${idx + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right: Info */}
