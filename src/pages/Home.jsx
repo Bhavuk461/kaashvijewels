@@ -73,6 +73,7 @@ function HomeContent() {
 
   const antiTarnish = products.filter((p) => p.category === 'anti-tarnish');
   const korean = products.filter((p) => p.category === 'korean');
+  const bracelets = products.filter((p) => p.category === 'bracelet');
   const bestsellers = products.filter((p) => p.badge === 'Bestseller');
   const newArrivals = products.filter((p) => p.badge === 'New');
 
@@ -209,6 +210,28 @@ function HomeContent() {
         </div>
       </RevealSection>
 
+      {/* ═══ Bracelet Collection Full Grid ═══ */}
+      <RevealSection className="home-collection">
+        <div className="container">
+          <div className="home-strip__header">
+            <div>
+              <h2>Bracelet Collection</h2>
+              <p className="home-collection__sub">
+                Stunning gold bangles & chain bracelets with clovers, butterflies & crystals
+              </p>
+            </div>
+            <Link to="/shop?category=bracelet" className="home-strip__viewall">
+              View All →
+            </Link>
+          </div>
+          <div className="product-grid">
+            {bracelets.slice(0, 8).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </RevealSection>
+
       {/* ═══ Product Mosaic ═══ */}
       {mosaicProducts.length >= 6 && (
         <RevealSection className="home-mosaic">
@@ -235,7 +258,7 @@ function HomeContent() {
         <h2>Explore the Full Collection</h2>
         <p>{products.length} exquisite designs crafted for every occasion</p>
         <Link to="/shop" className="btn btn-primary btn-lg">
-          Shop All Earrings →
+          Shop All Jewellery →
         </Link>
       </RevealSection>
     </>

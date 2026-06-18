@@ -11,7 +11,7 @@ export default function Shop() {
   // Read category from URL query string on mount and when params change
   useEffect(() => {
     const categoryParam = searchParams.get('category');
-    if (categoryParam && ['anti-tarnish', 'korean'].includes(categoryParam)) {
+    if (categoryParam && ['anti-tarnish', 'korean', 'bracelet'].includes(categoryParam)) {
       setSelectedCategory(categoryParam);
     }
   }, [searchParams]);
@@ -47,7 +47,7 @@ export default function Shop() {
       <div className="shop-header">
         <div className="container">
           <span className="section-subtitle">✨ Our Collection</span>
-          <h1>Shop All Earrings</h1>
+          <h1>Shop All Jewellery</h1>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-sm)' }}>
             {displayProducts.length} {displayProducts.length === 1 ? 'product' : 'products'} available
           </p>
@@ -97,6 +97,18 @@ export default function Shop() {
                   onChange={() => setSelectedCategory('korean')}
                 />
                 Korean
+              </label>
+              <label
+                className={`filter-group__option ${selectedCategory === 'bracelet' ? 'filter-group__option--active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="category"
+                  value="bracelet"
+                  checked={selectedCategory === 'bracelet'}
+                  onChange={() => setSelectedCategory('bracelet')}
+                />
+                Bracelets
               </label>
             </div>
 
