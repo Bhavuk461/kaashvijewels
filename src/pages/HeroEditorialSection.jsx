@@ -107,7 +107,6 @@ function OvalProductCard({ product, speed, caption }) {
         </div>
         <div className="editorial-card__caption">
           <h3 className="editorial-card__name">{product.name}</h3>
-          <span className="editorial-card__price">₹{product.price}</span>
         </div>
       </Link>
       {caption ? <p className="editorial-caption">{caption}</p> : null}
@@ -168,7 +167,6 @@ function ArchedPortraitPanel({ product }) {
           <h3 className="editorial-card__name">
             Trace your favourite Kaashvi pieces from conception to completion.
           </h3>
-          <span className="editorial-card__price">₹{product.price}</span>
         </div>
       </Link>
     </div>
@@ -237,7 +235,6 @@ function ArchedBrandedCard({ product }) {
             BESTSELLER
           </span>
           <h3 className="editorial-card__name">{product.name}</h3>
-          <span className="editorial-card__price">₹{product.price}</span>
         </div>
       </Link>
     </div>

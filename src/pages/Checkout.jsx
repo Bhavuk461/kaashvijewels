@@ -23,8 +23,7 @@ export default function Checkout() {
   // ── Derived totals (display only; the Worker re-validates these) ──
   const subtotal = getCartTotal();
   const gst = Math.round(subtotal * 0.18);
-  const shipping = subtotal > 499 ? 0 : 49;
-  const total = subtotal + gst + shipping;
+  const total = subtotal + gst;
 
   // ── Form handlers ──
   const handleChange = (e) => {
@@ -322,7 +321,7 @@ export default function Checkout() {
             </div>
             <div className="cart-summary__row">
               <span>Shipping</span>
-              <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+              <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Free</span>
             </div>
             <div className="cart-summary__row cart-summary__row--total">
               <span>Total</span>

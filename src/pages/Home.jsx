@@ -102,26 +102,31 @@ function HomeContent() {
 
   return (
     <>
-      {/* ═══ Editorial Hero (replaces the legacy two-panel banner) ═══ */}
-      <HeroEditorialSection products={products} />
-
-      {/* ═══ Marquee Trust Banner ═══ */}
-      <RevealSection as="div" className="home-marquee">
+      {/* ═══ Marquee Trust Banner — at the very top ═══ */}
+      <div className="home-marquee">
         <div className="home-marquee__track">
           {[...Array(3)].map((_, i) => (
             <span key={i} className="home-marquee__content">
+              <span>💧 100% WATERPROOF</span>
+              <span className="home-marquee__dot">·</span>
+              <span>🌟 WEAR IT ANYTIME, ANYWHERE</span>
+              <span className="home-marquee__dot">·</span>
               <span>✨ ANTI-TARNISH GUARANTEED</span>
               <span className="home-marquee__dot">·</span>
-              <span>🚚 FREE SHIPPING ABOVE ₹499</span>
+              <span>🔒 SECURE PAYMENTS</span>
+              <span className="home-marquee__dot">·</span>
+              <span>📦 FREE SHIPPING ON ALL ORDERS</span>
               <span className="home-marquee__dot">·</span>
               <span>↩️ 7-DAY EASY RETURNS</span>
-              <span className="home-marquee__dot">·</span>
-              <span>🔒 SECURE PAYMENTS</span>
               <span className="home-marquee__dot">·</span>
             </span>
           ))}
         </div>
-      </RevealSection>
+      </div>
+
+      {/* ═══ Editorial Hero ═══ */}
+      <HeroEditorialSection products={products} />
+
 
       {/* ═══ Anti-Tarnish Collection Full Grid ═══ */}
       <RevealSection className="home-collection">
@@ -246,7 +251,6 @@ function HomeContent() {
               <ProductImage src={p.image} alt={p.name} size="sm" />
               <div className="home-mosaic__overlay">
                 <span>{p.name}</span>
-                <span>₹{p.price}</span>
               </div>
             </Link>
           ))}
