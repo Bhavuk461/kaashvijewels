@@ -11,11 +11,12 @@ export function ProductOverridesProvider({ children }) {
   const refreshOverrides = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${WORKER_URL}/api/overrides`);
+      const res = await fetch(`${WORKER_URL}/api/overrides?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
       if (res.ok) {
         const data = await res.json();
-        // data is expected to be { [productId]: { price?: number, outOfStock?: boolean } }
-        setOverrides(data);
+        setOverrides(data.overrides || {});
       }
     } catch (err) {
       console.error('Failed to fetch overrides:', err);

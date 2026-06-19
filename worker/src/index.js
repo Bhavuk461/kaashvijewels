@@ -259,8 +259,12 @@ async function handleUpdate(request, env, origin) {
     return jsonResponse({ error: 'No fields to update (provide price and/or outOfStock)' }, 400, origin);
   }
 
+  // ---- Read existing data and merge ----
+  const existing = await env.PRODUCT_OVERRIDES.get(productId, { type: 'json' });
+  const merged = { ...(existing || {}), ...override };
+
   // ---- Write to KV ----
-  await env.PRODUCT_OVERRIDES.put(productId, JSON.stringify(override));
+  await env.PRODUCT_OVERRIDES.put(productId, JSON.stringify(merged));
 
   return jsonResponse({ success: true }, 200, origin);
 }
