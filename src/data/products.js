@@ -1,6 +1,6 @@
 export const products = [
   // ═══════════════════════════════════════════════
-  // ANTI-TARNISH COLLECTION (14 products)
+  // ANTI-TARNISH COLLECTION (15 products)
   // ═══════════════════════════════════════════════
   {
     id: 'at-01',
@@ -170,9 +170,21 @@ export const products = [
     material: 'Anti-Tarnish Gold Plated',
     weight: '9g',
   },
+  {
+    id: 'at-15',
+    name: 'Golden Twisted Teardrop Studs',
+    price: 159,
+    category: 'anti-tarnish',
+    type: 'Earrings',
+    image: '/images/products/anti-tarnish/at-15.jpg',
+    badge: 'New',
+    description: 'Elegant twisted teardrop studs with sculpted layered ridges and a lustrous gold-plated finish. Their bold yet refined silhouette catches light beautifully from every angle.',
+    material: 'Anti-Tarnish Gold Plated',
+    weight: '6g',
+  },
 
   // ═══════════════════════════════════════════════
-  // KOREAN COLLECTION (10 products)
+  // KOREAN COLLECTION (12 products)
   // ═══════════════════════════════════════════════
   {
     id: 'kr-01',
@@ -292,6 +304,30 @@ export const products = [
     badge: '',
     description: "Delicate crystal-encrusted bow butterfly studs with iridescent wing inserts. A magical fusion of sparkle and shimmer that elevates any ensemble.",
     material: "Silver Plated with Crystals & Cat's Eye",
+    weight: '3g',
+  },
+  {
+    id: 'kr-11',
+    name: 'Silver Daisy Crystal Hoops',
+    price: 159,
+    category: 'korean',
+    type: 'Earrings',
+    image: '/images/products/korean/kr-11.jpg',
+    badge: 'New',
+    description: 'Enchanting silver daisy hoops adorned with pearlescent petals and sparkling crystal accents on delicate prongs. A whimsical floral design perfect for everyday elegance.',
+    material: 'Silver Plated with Crystals & Cat\'s Eye',
+    weight: '4g',
+  },
+  {
+    id: 'kr-12',
+    name: 'Silver Moonstone Crossover Studs',
+    price: 159,
+    category: 'korean',
+    type: 'Earrings',
+    image: '/images/products/korean/kr-12.jpg',
+    badge: 'New',
+    description: 'Minimalist crossover studs featuring a triangular moonstone cabochon wrapped in a sleek silver ribbon. Their ethereal glow makes them a mesmerising everyday staple.',
+    material: 'Silver Plated with Moonstone',
     weight: '3g',
   },
 
