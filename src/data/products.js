@@ -1,6 +1,6 @@
 export const products = [
   // ═══════════════════════════════════════════════
-  // ANTI-TARNISH COLLECTION (15 products)
+  // ANTI-TARNISH COLLECTION (16 products)
   // ═══════════════════════════════════════════════
   {
     id: 'at-01',
@@ -181,6 +181,18 @@ export const products = [
     description: 'Elegant twisted teardrop studs with sculpted layered ridges and a lustrous gold-plated finish. Their bold yet refined silhouette catches light beautifully from every angle.',
     material: 'Anti-Tarnish Gold Plated',
     weight: '6g',
+  },
+  {
+    id: 'at-16',
+    name: 'Golden Rope Knot Studs',
+    price: 159,
+    category: 'anti-tarnish',
+    type: 'Earrings',
+    image: '/images/products/anti-tarnish/at-16.jpg',
+    badge: 'New',
+    description: 'Intricately woven rope-textured knot studs with a rich gold-plated finish. The swirling design creates mesmerising depth and dimension, perfect for both casual and dressy looks.',
+    material: 'Anti-Tarnish Gold Plated',
+    weight: '5g',
   },
 
   // ═══════════════════════════════════════════════
