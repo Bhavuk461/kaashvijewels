@@ -467,18 +467,17 @@ export const products = [
   },
   {
     id: 'br-08',
-    name: 'Golden Clover Malachite Chain Bracelet',
+    name: 'Golden Clover Onyx Chain Bracelet',
     price: 159,
     category: 'bracelet',
     type: 'Bracelet',
     image: '/images/products/bracelet/br-08-a.webp',
     images: [
       '/images/products/bracelet/br-08-a.webp',
-      '/images/products/bracelet/br-08-b.webp',
     ],
     badge: 'New',
-    description: 'A luxurious five-clover chain bracelet featuring alternating black onyx and green malachite stones set in micro-beaded gold bezels. The delicate chain and lobster clasp with extender tag ensure a perfect fit.',
-    material: 'Anti-Tarnish Gold Plated with Onyx & Malachite',
+    description: 'A luxurious five-clover chain bracelet featuring deep black onyx stones set in micro-beaded gold bezels. The delicate chain and lobster clasp with extender tag ensure a perfect fit.',
+    material: 'Anti-Tarnish Gold Plated with Onyx',
     weight: '7g',
   },
 ];
