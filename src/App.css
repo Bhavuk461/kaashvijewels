@@ -1867,6 +1867,7 @@ h4 { font-size: 1.25rem; }
   padding: 14px 0;
   overflow: hidden;
   white-space: nowrap;
+  margin-top: var(--nav-height);
 }
 
 .home-marquee__track {

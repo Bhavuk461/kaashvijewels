@@ -13,7 +13,7 @@
   gap: var(--space-2xl);
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: calc(var(--nav-height) + var(--space-3xl)) var(--space-xl)
+  padding: var(--space-3xl) var(--space-xl)
     var(--space-4xl);
   background: var(--color-bg);
   /* Clip parallax drift so cards never bleed into the marquee /
