@@ -332,7 +332,7 @@ export const products = [
   },
 
   // ═══════════════════════════════════════════════
-  // BRACELET COLLECTION (7 products, 3 images each)
+  // BRACELET COLLECTION (8 products)
   // ═══════════════════════════════════════════════
   {
     id: 'br-01',
@@ -452,6 +452,22 @@ export const products = [
     description: 'Five luminous mother-of-pearl clovers connected by a fine gold chain with a branded tag extender. Each clover sits in a micro-beaded gold setting for a luxurious finish.',
     material: 'Anti-Tarnish Gold Plated with Mother of Pearl',
     weight: '8g',
+  },
+  {
+    id: 'br-08',
+    name: 'Golden Clover Malachite Chain Bracelet',
+    price: 159,
+    category: 'bracelet',
+    type: 'Bracelet',
+    image: '/images/products/bracelet/br-08-a.webp',
+    images: [
+      '/images/products/bracelet/br-08-a.webp',
+      '/images/products/bracelet/br-08-b.webp',
+    ],
+    badge: 'New',
+    description: 'A luxurious five-clover chain bracelet featuring alternating black onyx and green malachite stones set in micro-beaded gold bezels. The delicate chain and lobster clasp with extender tag ensure a perfect fit.',
+    material: 'Anti-Tarnish Gold Plated with Onyx & Malachite',
+    weight: '7g',
   },
 ];
 
