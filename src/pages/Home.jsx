@@ -102,10 +102,7 @@ function HomeContent() {
 
   return (
     <>
-      {/* ═══ Editorial Hero ═══ */}
-      <HeroEditorialSection products={products} />
-
-      {/* ═══ Marquee Trust Banner — below hero, above collections ═══ */}
+      {/* ═══ Marquee Trust Banner — right below navbar ═══ */}
       <div className="home-marquee">
         <div className="home-marquee__track">
           {[...Array(3)].map((_, i) => (
@@ -126,6 +123,9 @@ function HomeContent() {
           ))}
         </div>
       </div>
+
+      {/* ═══ Editorial Hero ═══ */}
+      <HeroEditorialSection products={products} />
 
       {/* ═══ Anti-Tarnish Collection Full Grid ═══ */}
       <RevealSection className="home-collection">
