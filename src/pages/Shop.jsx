@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { products } from '../data/products';
+import { useAllProducts } from '../hooks/useAllProducts';
 import ProductCard from '../components/ProductCard';
 
 export default function Shop() {
   const [searchParams] = useSearchParams();
+  const products = useAllProducts();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('featured');
 
