@@ -139,7 +139,7 @@ async function computeTotals(items, env) {
   }
 
   const gst = Math.round(subtotal * 0.18);
-  const shipping = subtotal > 499 ? 0 : 49;
+  const shipping = 0; // Free shipping on all orders
   const total = subtotal + gst + shipping;
   return { subtotal, gst, shipping, total };
 }
