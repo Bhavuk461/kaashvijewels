@@ -6,20 +6,27 @@ const ProductOverridesContext = createContext();
 
 export function ProductOverridesProvider({ children }) {
   const [overrides, setOverrides] = useState({});
+  const [customProducts, setCustomProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refreshOverrides = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${WORKER_URL}/api/overrides?t=${Date.now()}`, {
-        cache: 'no-store',
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [overridesRes, productsRes] = await Promise.all([
+        fetch(`${WORKER_URL}/api/overrides?t=${Date.now()}`, { cache: 'no-store' }),
+        fetch(`${WORKER_URL}/api/products?t=${Date.now()}`, { cache: 'no-store' }),
+      ]);
+
+      if (overridesRes.ok) {
+        const data = await overridesRes.json();
         setOverrides(data.overrides || {});
       }
+      if (productsRes.ok) {
+        const data = await productsRes.json();
+        setCustomProducts(Array.isArray(data.products) ? data.products : []);
+      }
     } catch (err) {
-      console.error('Failed to fetch overrides:', err);
+      console.error('Failed to fetch product data:', err);
     } finally {
       setLoading(false);
     }
@@ -52,6 +59,7 @@ export function ProductOverridesProvider({ children }) {
     <ProductOverridesContext.Provider
       value={{
         overrides,
+        customProducts,
         loading,
         getProductPrice,
         isOutOfStock,
