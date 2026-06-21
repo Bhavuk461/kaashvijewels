@@ -269,7 +269,7 @@ async function handleUpdate(request, env, origin) {
     return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
   }
 
-  const { productId, price, outOfStock } = body || {};
+  const { productId, price, outOfStock, images } = body || {};
   if (!productId || typeof productId !== 'string') {
     return jsonResponse({ error: 'Missing or invalid productId' }, 400, origin);
   }
@@ -287,12 +287,33 @@ async function handleUpdate(request, env, origin) {
     }
     override.outOfStock = outOfStock;
   }
+  if (images !== undefined) {
+    if (!Array.isArray(images) || images.length === 0) {
+      return jsonResponse({ error: 'images must be a non-empty array' }, 400, origin);
+    }
+    if (!images.every((u) => typeof u === 'string' && u)) {
+      return jsonResponse({ error: 'Invalid image URL in images array' }, 400, origin);
+    }
+    override.images = images;
+  }
 
   if (Object.keys(override).length === 0) {
-    return jsonResponse({ error: 'No fields to update (provide price and/or outOfStock)' }, 400, origin);
+    return jsonResponse({ error: 'No fields to update (provide price, outOfStock, and/or images)' }, 400, origin);
   }
 
   const existing = await env.PRODUCT_OVERRIDES.get(productId, { type: 'json' });
+
+  // Clean up old R2 images that are no longer referenced.
+  if (override.images && env.PRODUCT_IMAGES && Array.isArray(existing?.images)) {
+    const keep = new Set(override.images);
+    for (const oldUrl of existing.images) {
+      if (!keep.has(oldUrl)) {
+        const key = r2KeyFromUrl(env, oldUrl);
+        if (key) await env.PRODUCT_IMAGES.delete(key).catch(() => {});
+      }
+    }
+  }
+
   const merged = { ...(existing || {}), ...override };
   await env.PRODUCT_OVERRIDES.put(productId, JSON.stringify(merged));
 

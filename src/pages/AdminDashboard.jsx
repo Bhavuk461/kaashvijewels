@@ -27,7 +27,7 @@ const EMPTY_FORM = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { overrides, loading, isOutOfStock, refreshOverrides } =
+  const { overrides, loading, isOutOfStock, getProductImages, refreshOverrides } =
     useProductOverrides();
   const products = useAllProducts();
 
@@ -46,6 +46,16 @@ export default function AdminDashboard() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
   const dragIndex = useRef(null);
+
+  // ── Image Manager modal state (for changing images on any product) ──
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalProduct, setImageModalProduct] = useState(null);
+  const [imgImages, setImgImages] = useState([]);
+  const [imgDragOver, setImgDragOver] = useState(false);
+  const [imgSubmitting, setImgSubmitting] = useState(false);
+  const [imgError, setImgError] = useState('');
+  const imgFileInputRef = useRef(null);
+  const imgDragIndex = useRef(null);
 
   // ── Auth guard ──
   useEffect(() => {
@@ -295,6 +305,161 @@ export default function AdminDashboard() {
     });
   };
 
+  // ── Image Manager (for any product) ──
+  const openImageManager = (product) => {
+    setImageModalProduct(product);
+    const imgs = getProductImages(product);
+    setImgImages(imgs.map((url) => ({ url, uploading: false })));
+    setImgError('');
+    setImageModalOpen(true);
+  };
+
+  const closeImageManager = () => {
+    if (imgSubmitting) return;
+    setImageModalOpen(false);
+    setImageModalProduct(null);
+  };
+
+  const imgUploadFile = async (file) => {
+    const token = getToken();
+    if (!token) return;
+    const placeholder = {
+      url: '',
+      uploading: true,
+      error: '',
+      localName: file.name,
+      tempId: Date.now() + Math.random(),
+    };
+    setImgImages((prev) => [...prev, placeholder]);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${WORKER_URL}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setImgImages((prev) =>
+          prev.map((img) =>
+            img.tempId === placeholder.tempId
+              ? { url: data.url, uploading: false }
+              : img
+          )
+        );
+      } else {
+        setImgImages((prev) =>
+          prev.map((img) =>
+            img.tempId === placeholder.tempId
+              ? { ...img, uploading: false, error: data.error || 'Upload failed' }
+              : img
+          )
+        );
+        showToast(data.error || 'Image upload failed', 'error');
+      }
+    } catch {
+      setImgImages((prev) =>
+        prev.map((img) =>
+          img.tempId === placeholder.tempId
+            ? { ...img, uploading: false, error: 'Network error' }
+            : img
+        )
+      );
+      showToast('Network error during upload', 'error');
+    }
+  };
+
+  const imgHandleFiles = (fileList) => {
+    const files = Array.from(fileList || []);
+    files.forEach((file) => {
+      if (!/^image\//.test(file.type)) {
+        showToast(`${file.name} is not an image`, 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast(`${file.name} is larger than 5 MB`, 'error');
+        return;
+      }
+      imgUploadFile(file);
+    });
+  };
+
+  const imgHandleDrop = (e) => {
+    e.preventDefault();
+    setImgDragOver(false);
+    imgHandleFiles(e.dataTransfer.files);
+  };
+
+  const imgRemoveImage = (index) => {
+    setImgImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const imgHandleThumbDragStart = (index) => {
+    imgDragIndex.current = index;
+  };
+  const imgHandleThumbDrop = (index) => {
+    const from = imgDragIndex.current;
+    if (from == null || from === index) return;
+    setImgImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    imgDragIndex.current = null;
+  };
+  const imgMakeCover = (index) => {
+    if (index === 0) return;
+    setImgImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.unshift(moved);
+      return next;
+    });
+  };
+
+  const handleSaveImages = async () => {
+    setImgError('');
+    const token = getToken();
+    if (!token) return;
+
+    if (imgImages.some((i) => i.uploading))
+      return setImgError('Please wait for all images to finish uploading.');
+
+    const readyImages = imgImages.filter((i) => i.url && !i.uploading && !i.error);
+    if (readyImages.length === 0)
+      return setImgError('Please add at least one product image.');
+
+    setImgSubmitting(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId: imageModalProduct.id,
+          images: readyImages.map((i) => i.url),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('Images updated successfully');
+        setImageModalOpen(false);
+        setImageModalProduct(null);
+        await refreshOverrides();
+      } else {
+        setImgError(data.error || 'Failed to save images.');
+      }
+    } catch {
+      setImgError('Network error. Please try again.');
+    } finally {
+      setImgSubmitting(false);
+    }
+  };
+
   // ── Submit (create or edit) ──
   const handleSubmit = async () => {
     setFormError('');
@@ -467,7 +632,7 @@ export default function AdminDashboard() {
                       <div className="admin-product-cell">
                         <img
                           className="admin-product-thumb"
-                          src={product.image}
+                          src={getProductImages(product)[0] || product.image}
                           alt={product.name}
                           loading="lazy"
                         />
@@ -526,26 +691,34 @@ export default function AdminDashboard() {
                       </button>
                     </td>
                     <td data-label="Actions">
-                      {product.custom ? (
-                        <div className="admin-row-actions">
-                          <button
-                            className="admin-btn-edit"
-                            disabled={isSaving}
-                            onClick={() => openEditModal(product)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="admin-btn-delete"
-                            disabled={isSaving}
-                            onClick={() => handleDelete(product)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="admin-row-actions-muted">—</span>
-                      )}
+                      <div className="admin-row-actions">
+                        <button
+                          className="admin-btn-images"
+                          disabled={isSaving}
+                          onClick={() => openImageManager(product)}
+                          title="Manage images"
+                        >
+                          📷
+                        </button>
+                        {product.custom && (
+                          <>
+                            <button
+                              className="admin-btn-edit"
+                              disabled={isSaving}
+                              onClick={() => openEditModal(product)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="admin-btn-delete"
+                              disabled={isSaving}
+                              onClick={() => handleDelete(product)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -789,6 +962,132 @@ export default function AdminDashboard() {
                   : editingId
                     ? 'Save Changes'
                     : 'Add Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Manager Modal ── */}
+      {imageModalOpen && imageModalProduct && (
+        <div className="admin-modal-overlay" onClick={closeImageManager}>
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3>📷 Manage Images — {imageModalProduct.name}</h3>
+              <button
+                className="admin-modal-close"
+                onClick={closeImageManager}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              <div className="admin-field">
+                <label className="admin-field-label">Product Photos</label>
+                <div
+                  className={`admin-dropzone${imgDragOver ? ' admin-dropzone-over' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setImgDragOver(true);
+                  }}
+                  onDragLeave={() => setImgDragOver(false)}
+                  onDrop={imgHandleDrop}
+                  onClick={() => imgFileInputRef.current?.click()}
+                >
+                  <div className="admin-dropzone-icon">📷</div>
+                  <p className="admin-dropzone-text">
+                    <strong>Click to upload</strong> or drag &amp; drop
+                  </p>
+                  <p className="admin-dropzone-hint">
+                    JPG, PNG or WebP — up to 5 MB each. The first photo is the
+                    cover.
+                  </p>
+                  <input
+                    ref={imgFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      imgHandleFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+
+                {imgImages.length > 0 && (
+                  <div className="admin-thumb-grid">
+                    {imgImages.map((img, idx) => (
+                      <div
+                        key={img.tempId || img.url || idx}
+                        className={`admin-thumb${idx === 0 ? ' admin-thumb-cover' : ''}`}
+                        draggable={!img.uploading}
+                        onDragStart={() => imgHandleThumbDragStart(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => imgHandleThumbDrop(idx)}
+                      >
+                        {img.uploading ? (
+                          <div className="admin-thumb-loading">
+                            <div className="admin-spinner admin-spinner-sm" />
+                          </div>
+                        ) : img.error ? (
+                          <div className="admin-thumb-error">!</div>
+                        ) : (
+                          <img src={img.url} alt="" />
+                        )}
+                        {idx === 0 && !img.uploading && !img.error && (
+                          <span className="admin-thumb-badge">Cover</span>
+                        )}
+                        {!img.uploading && (
+                          <div className="admin-thumb-actions">
+                            {idx !== 0 && !img.error && (
+                              <button
+                                type="button"
+                                title="Set as cover"
+                                onClick={() => imgMakeCover(idx)}
+                              >
+                                ★
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              title="Remove"
+                              onClick={() => imgRemoveImage(idx)}
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {imgError && <div className="admin-form-error">{imgError}</div>}
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                className="admin-btn-ghost"
+                onClick={closeImageManager}
+                disabled={imgSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="admin-btn-add"
+                onClick={handleSaveImages}
+                disabled={imgSubmitting}
+              >
+                {imgSubmitting ? 'Saving…' : 'Save Images'}
               </button>
             </div>
           </div>

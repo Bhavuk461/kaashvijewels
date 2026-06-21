@@ -13,7 +13,7 @@ export default function ProductDetail() {
   const products = useAllProducts();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const { getProductPrice, isOutOfStock } = useProductOverrides();
+  const { getProductPrice, isOutOfStock, getProductImages } = useProductOverrides();
 
   // Find product by id
   const product = products.find((p) => p.id === id);
@@ -45,10 +45,8 @@ export default function ProductDetail() {
         ? 'Bracelet'
         : 'Korean';
 
-  // Build the list of images for the gallery
-  const allImages = product.images && product.images.length > 0
-    ? product.images
-    : [product.image];
+  // Build the list of images for the gallery (respects admin overrides)
+  const allImages = getProductImages(product);
 
   // ── Quantity handlers ──
   const decreaseQuantity = () => {

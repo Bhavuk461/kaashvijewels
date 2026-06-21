@@ -754,6 +754,29 @@
   gap: 8px;
 }
 
+.admin-btn-images {
+  padding: 7px 12px;
+  background: rgba(99, 179, 237, 0.12);
+  color: #63b3ed;
+  border: 1px solid rgba(99, 179, 237, 0.25);
+  border-radius: var(--admin-radius-sm);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all var(--admin-transition);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.admin-btn-images:hover {
+  background: rgba(99, 179, 237, 0.22);
+  border-color: rgba(99, 179, 237, 0.4);
+}
+
+.admin-btn-images:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-row-actions-muted {
   color: var(--admin-text-muted);
 }

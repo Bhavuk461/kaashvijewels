@@ -5,7 +5,8 @@ import ProductImage from './ProductImage';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
-  const { getProductPrice, isOutOfStock } = useProductOverrides();
+  const { getProductPrice, isOutOfStock, getProductImages } = useProductOverrides();
+  const productImages = getProductImages(product);
 
   const categoryLabel =
     product.category === 'anti-tarnish'
@@ -32,7 +33,7 @@ export default function ProductCard({ product }) {
     >
       <div className="product-card__image-wrapper">
         <ProductImage
-          src={product.image}
+          src={productImages[0] || product.image}
           alt={product.name}
           size="sm"
           className="product-card__image"

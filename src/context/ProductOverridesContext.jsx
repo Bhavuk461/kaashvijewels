@@ -55,6 +55,24 @@ export function ProductOverridesProvider({ children }) {
     [overrides]
   );
 
+  /**
+   * Return the images to display for a product, respecting admin overrides.
+   * Priority: override.images → product.images → [product.image].
+   */
+  const getProductImages = useCallback(
+    (product) => {
+      const override = overrides[product.id];
+      if (override?.images && override.images.length > 0) {
+        return override.images;
+      }
+      if (product.images && product.images.length > 0) {
+        return product.images;
+      }
+      return product.image ? [product.image] : [];
+    },
+    [overrides]
+  );
+
   return (
     <ProductOverridesContext.Provider
       value={{
@@ -63,6 +81,7 @@ export function ProductOverridesProvider({ children }) {
         loading,
         getProductPrice,
         isOutOfStock,
+        getProductImages,
         refreshOverrides,
       }}
     >
@@ -80,3 +99,4 @@ export function useProductOverrides() {
   }
   return context;
 }
+
