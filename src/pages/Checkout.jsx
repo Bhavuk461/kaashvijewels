@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
-const WORKER_URL = import.meta.env.VITE_WORKER_URL;
+const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'https://kaashvi-payments.greatgatch1.workers.dev';
 
 export default function Checkout() {
   const navigate = useNavigate();
