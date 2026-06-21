@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
-import { products } from '../data/products';
+import { useAllProducts } from '../hooks/useAllProducts';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
 
@@ -10,6 +10,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const products = useAllProducts();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { getProductPrice, isOutOfStock } = useProductOverrides();

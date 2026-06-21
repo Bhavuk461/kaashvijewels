@@ -1,30 +1,59 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { products } from '../data/products';
 import { useProductOverrides } from '../context/ProductOverridesContext';
+import { useAllProducts } from '../hooks/useAllProducts';
+import ProductImage from '../components/ProductImage';
 import './Admin.css';
 
 const WORKER_URL = 'https://kaashvi-admin-api.greatgatch1.workers.dev';
 
+const CATEGORY_OPTIONS = [
+  { value: 'anti-tarnish', label: 'Anti-Tarnish' },
+  { value: 'bracelet', label: 'Bracelet' },
+  { value: 'korean', label: 'Korean' },
+];
+const BADGE_OPTIONS = ['', 'Bestseller', 'New'];
+
+const EMPTY_FORM = {
+  name: '',
+  category: 'anti-tarnish',
+  type: '',
+  price: '',
+  material: '',
+  weight: '',
+  badge: '',
+  description: '',
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { overrides, loading, getProductPrice, isOutOfStock, refreshOverrides } =
+  const { overrides, loading, isOutOfStock, refreshOverrides } =
     useProductOverrides();
+  const products = useAllProducts();
 
   const [search, setSearch] = useState('');
   const [prices, setPrices] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [toasts, setToasts] = useState([]);
 
-  // ── Auth guard ──────────────────────────────────────────────
+  // ── Product modal state ──
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null); // null = create mode
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [images, setImages] = useState([]); // [{ url, uploading, error }]
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+  const dragIndex = useRef(null);
+
+  // ── Auth guard ──
   useEffect(() => {
     const token = sessionStorage.getItem('adminToken');
-    if (!token) {
-      navigate('/admin/login', { replace: true });
-    }
+    if (!token) navigate('/admin/login', { replace: true });
   }, [navigate]);
 
-  // ── Initialize local price inputs when overrides load ──────
+  // ── Initialize local price inputs when overrides/products load ──
   useEffect(() => {
     const initial = {};
     products.forEach((p) => {
@@ -32,11 +61,11 @@ export default function AdminDashboard() {
       initial[p.id] = override?.price != null ? override.price : p.price;
     });
     setPrices(initial);
-  }, [overrides]);
+  }, [overrides, products]);
 
-  // ── Toast helper ───────────────────────────────────────────
+  // ── Toast helper ──
   const showToast = useCallback((message, type = 'success') => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) =>
@@ -48,10 +77,16 @@ export default function AdminDashboard() {
     }, 3000);
   }, []);
 
-  // ── Save price ─────────────────────────────────────────────
-  const handleSavePrice = async (productId) => {
+  const getToken = () => {
     const token = sessionStorage.getItem('adminToken');
-    if (!token) return navigate('/admin/login', { replace: true });
+    if (!token) navigate('/admin/login', { replace: true });
+    return token;
+  };
+
+  // ── Save price ──
+  const handleSavePrice = async (productId) => {
+    const token = getToken();
+    if (!token) return;
 
     const newPrice = parseFloat(prices[productId]);
     if (isNaN(newPrice) || newPrice < 0) {
@@ -69,7 +104,6 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({ productId, price: newPrice }),
       });
-
       if (res.ok) {
         showToast(`Price updated for ${productId}`);
         await refreshOverrides();
@@ -84,13 +118,12 @@ export default function AdminDashboard() {
     }
   };
 
-  // ── Toggle stock ───────────────────────────────────────────
+  // ── Toggle stock ──
   const handleToggleStock = async (productId) => {
-    const token = sessionStorage.getItem('adminToken');
-    if (!token) return navigate('/admin/login', { replace: true });
+    const token = getToken();
+    if (!token) return;
 
     const currentlyOut = isOutOfStock(productId);
-
     setSavingId(productId);
     try {
       const res = await fetch(`${WORKER_URL}/api/update`, {
@@ -101,7 +134,6 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({ productId, outOfStock: !currentlyOut }),
       });
-
       if (res.ok) {
         showToast(
           `${productId} marked as ${!currentlyOut ? 'out of stock' : 'in stock'}`
@@ -118,13 +150,236 @@ export default function AdminDashboard() {
     }
   };
 
-  // ── Logout ─────────────────────────────────────────────────
+  // ── Logout ──
   const handleLogout = () => {
     sessionStorage.removeItem('adminToken');
     navigate('/admin/login', { replace: true });
   };
 
-  // ── Filter products ────────────────────────────────────────
+  // ── Modal open/close ──
+  const openCreateModal = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setImages([]);
+    setFormError('');
+    setModalOpen(true);
+  };
+
+  const openEditModal = (product) => {
+    setEditingId(product.id);
+    setForm({
+      name: product.name || '',
+      category: product.category || 'anti-tarnish',
+      type: product.type || '',
+      price: product.price != null ? String(product.price) : '',
+      material: product.material || '',
+      weight: product.weight || '',
+      badge: product.badge || '',
+      description: product.description || '',
+    });
+    const imgs = product.images && product.images.length > 0
+      ? product.images
+      : product.image
+        ? [product.image]
+        : [];
+    setImages(imgs.map((url) => ({ url, uploading: false })));
+    setFormError('');
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (submitting) return;
+    setModalOpen(false);
+  };
+
+  // ── Image upload ──
+  const uploadFile = async (file) => {
+    const token = getToken();
+    if (!token) return;
+
+    const placeholder = {
+      url: '',
+      uploading: true,
+      error: '',
+      localName: file.name,
+      tempId: Date.now() + Math.random(),
+    };
+    setImages((prev) => [...prev, placeholder]);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${WORKER_URL}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.tempId === placeholder.tempId
+              ? { url: data.url, uploading: false }
+              : img
+          )
+        );
+      } else {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.tempId === placeholder.tempId
+              ? { ...img, uploading: false, error: data.error || 'Upload failed' }
+              : img
+          )
+        );
+        showToast(data.error || 'Image upload failed', 'error');
+      }
+    } catch {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.tempId === placeholder.tempId
+            ? { ...img, uploading: false, error: 'Network error' }
+            : img
+        )
+      );
+      showToast('Network error during upload', 'error');
+    }
+  };
+
+  const handleFiles = (fileList) => {
+    const files = Array.from(fileList || []);
+    files.forEach((file) => {
+      if (!/^image\//.test(file.type)) {
+        showToast(`${file.name} is not an image`, 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast(`${file.name} is larger than 5 MB`, 'error');
+        return;
+      }
+      uploadFile(file);
+    });
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  };
+
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ── Thumbnail reordering (drag to reorder) ──
+  const handleThumbDragStart = (index) => {
+    dragIndex.current = index;
+  };
+  const handleThumbDrop = (index) => {
+    const from = dragIndex.current;
+    if (from == null || from === index) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    dragIndex.current = null;
+  };
+  const makeCover = (index) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.unshift(moved);
+      return next;
+    });
+  };
+
+  // ── Submit (create or edit) ──
+  const handleSubmit = async () => {
+    setFormError('');
+    const token = getToken();
+    if (!token) return;
+
+    if (!form.name.trim()) return setFormError('Please enter a product name.');
+    const priceNum = parseFloat(form.price);
+    if (isNaN(priceNum) || priceNum < 0)
+      return setFormError('Please enter a valid price.');
+
+    const readyImages = images.filter((i) => i.url && !i.uploading && !i.error);
+    if (images.some((i) => i.uploading))
+      return setFormError('Please wait for all images to finish uploading.');
+    if (readyImages.length === 0)
+      return setFormError('Please add at least one product image.');
+
+    const payload = {
+      name: form.name.trim(),
+      category: form.category,
+      type: form.type.trim(),
+      price: priceNum,
+      material: form.material.trim(),
+      weight: form.weight.trim(),
+      badge: form.badge,
+      description: form.description.trim(),
+      images: readyImages.map((i) => i.url),
+    };
+
+    setSubmitting(true);
+    try {
+      const url = editingId
+        ? `${WORKER_URL}/api/products/${editingId}`
+        : `${WORKER_URL}/api/products`;
+      const res = await fetch(url, {
+        method: editingId ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(editingId ? 'Product updated' : 'Product added');
+        setModalOpen(false);
+        await refreshOverrides();
+      } else {
+        setFormError(data.error || 'Failed to save product.');
+      }
+    } catch {
+      setFormError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Delete custom product ──
+  const handleDelete = async (product) => {
+    const token = getToken();
+    if (!token) return;
+    if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`))
+      return;
+
+    setSavingId(product.id);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/products/${product.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast('Product deleted');
+        await refreshOverrides();
+      } else {
+        showToast(data.error || 'Failed to delete product', 'error');
+      }
+    } catch {
+      showToast('Network error. Please try again.', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  // ── Filter products ──
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -132,11 +387,9 @@ export default function AdminDashboard() {
       p.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ── Stats ──────────────────────────────────────────────────
+  // ── Stats ──
   const outOfStockCount = products.filter((p) => isOutOfStock(p.id)).length;
-  const overriddenCount = Object.keys(overrides).filter(
-    (id) => overrides[id]?.price != null
-  ).length;
+  const customCount = products.filter((p) => p.custom).length;
 
   if (loading) {
     return (
@@ -151,28 +404,25 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-page">
-      {/* ── Header ── */}
       <header className="admin-header">
         <div className="admin-header-left">
           <h1>Admin Dashboard</h1>
-          <p>Manage products, pricing & inventory</p>
+          <p>Manage products, pricing &amp; inventory</p>
         </div>
         <button className="admin-btn-logout" onClick={handleLogout}>
           Logout
         </button>
       </header>
 
-      {/* ── Content ── */}
       <div className="admin-content">
-        {/* Stats */}
         <div className="admin-stats-bar">
           <div className="admin-stat-card">
             <div className="admin-stat-label">Total Products</div>
             <div className="admin-stat-value">{products.length}</div>
           </div>
           <div className="admin-stat-card">
-            <div className="admin-stat-label">Price Overrides</div>
-            <div className="admin-stat-value">{overriddenCount}</div>
+            <div className="admin-stat-label">Added by You</div>
+            <div className="admin-stat-value">{customCount}</div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-label">Out of Stock</div>
@@ -180,17 +430,21 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Product table */}
         <div className="admin-table-wrapper">
           <div className="admin-table-header">
             <h2>All Products ({filtered.length})</h2>
-            <input
-              className="admin-search-input"
-              type="text"
-              placeholder="Search products…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="admin-table-header-actions">
+              <input
+                className="admin-search-input"
+                type="text"
+                placeholder="Search products…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <button className="admin-btn-add" onClick={openCreateModal}>
+                <span className="admin-btn-add-icon">+</span> Add New Product
+              </button>
+            </div>
           </div>
 
           <table className="admin-table">
@@ -200,16 +454,15 @@ export default function AdminDashboard() {
                 <th>Category</th>
                 <th>Price (₹)</th>
                 <th>Stock</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((product) => {
                 const oos = isOutOfStock(product.id);
                 const isSaving = savingId === product.id;
-
                 return (
                   <tr key={product.id}>
-                    {/* Product info */}
                     <td data-label="Product">
                       <div className="admin-product-cell">
                         <img
@@ -221,20 +474,19 @@ export default function AdminDashboard() {
                         <div>
                           <div className="admin-product-name">
                             {product.name}
+                            {product.custom && (
+                              <span className="admin-custom-tag">Custom</span>
+                            )}
                           </div>
                           <div className="admin-product-id">{product.id}</div>
                         </div>
                       </div>
                     </td>
-
-                    {/* Category */}
                     <td data-label="Category">
                       <span className="admin-category-badge">
                         {product.category}
                       </span>
                     </td>
-
-                    {/* Price */}
                     <td data-label="Price">
                       <div className="admin-price-cell">
                         <div className="admin-price-input-wrapper">
@@ -261,8 +513,6 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </td>
-
-                    {/* Stock toggle */}
                     <td data-label="Stock">
                       <button
                         className={`admin-stock-toggle ${
@@ -275,6 +525,28 @@ export default function AdminDashboard() {
                         {oos ? 'Out of Stock' : 'In Stock'}
                       </button>
                     </td>
+                    <td data-label="Actions">
+                      {product.custom ? (
+                        <div className="admin-row-actions">
+                          <button
+                            className="admin-btn-edit"
+                            disabled={isSaving}
+                            onClick={() => openEditModal(product)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="admin-btn-delete"
+                            disabled={isSaving}
+                            onClick={() => handleDelete(product)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="admin-row-actions-muted">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -282,6 +554,246 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* ── Add / Edit Product Modal ── */}
+      {modalOpen && (
+        <div className="admin-modal-overlay" onClick={closeModal}>
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3>{editingId ? 'Edit Product' : 'Add New Product'}</h3>
+              <button
+                className="admin-modal-close"
+                onClick={closeModal}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              {/* Images */}
+              <div className="admin-field">
+                <label className="admin-field-label">Product Photos</label>
+                <div
+                  className={`admin-dropzone${dragOver ? ' admin-dropzone-over' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOver(true);
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="admin-dropzone-icon">📷</div>
+                  <p className="admin-dropzone-text">
+                    <strong>Click to upload</strong> or drag &amp; drop
+                  </p>
+                  <p className="admin-dropzone-hint">
+                    JPG, PNG or WebP — up to 5 MB each. The first photo is the
+                    cover.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      handleFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+
+                {images.length > 0 && (
+                  <div className="admin-thumb-grid">
+                    {images.map((img, idx) => (
+                      <div
+                        key={img.tempId || img.url || idx}
+                        className={`admin-thumb${idx === 0 ? ' admin-thumb-cover' : ''}`}
+                        draggable={!img.uploading}
+                        onDragStart={() => handleThumbDragStart(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleThumbDrop(idx)}
+                      >
+                        {img.uploading ? (
+                          <div className="admin-thumb-loading">
+                            <div className="admin-spinner admin-spinner-sm" />
+                          </div>
+                        ) : img.error ? (
+                          <div className="admin-thumb-error">!</div>
+                        ) : (
+                          <img src={img.url} alt="" />
+                        )}
+                        {idx === 0 && !img.uploading && !img.error && (
+                          <span className="admin-thumb-badge">Cover</span>
+                        )}
+                        {!img.uploading && (
+                          <div className="admin-thumb-actions">
+                            {idx !== 0 && !img.error && (
+                              <button
+                                type="button"
+                                title="Set as cover"
+                                onClick={() => makeCover(idx)}
+                              >
+                                ★
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              title="Remove"
+                              onClick={() => removeImage(idx)}
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fields */}
+              <div className="admin-field">
+                <label className="admin-field-label">Product Name *</label>
+                <input
+                  className="admin-input"
+                  type="text"
+                  placeholder="e.g. Golden Petal Cluster Studs"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </div>
+
+              <div className="admin-field-row">
+                <div className="admin-field">
+                  <label className="admin-field-label">Category *</label>
+                  <select
+                    className="admin-input"
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm({ ...form, category: e.target.value })
+                    }
+                  >
+                    {CATEGORY_OPTIONS.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="admin-field">
+                  <label className="admin-field-label">Type</label>
+                  <input
+                    className="admin-input"
+                    type="text"
+                    placeholder="e.g. Earrings"
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="admin-field-row">
+                <div className="admin-field">
+                  <label className="admin-field-label">Price (₹) *</label>
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    placeholder="349"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  />
+                </div>
+                <div className="admin-field">
+                  <label className="admin-field-label">Badge</label>
+                  <select
+                    className="admin-input"
+                    value={form.badge}
+                    onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                  >
+                    {BADGE_OPTIONS.map((b) => (
+                      <option key={b} value={b}>
+                        {b === '' ? 'None' : b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="admin-field-row">
+                <div className="admin-field">
+                  <label className="admin-field-label">Material</label>
+                  <input
+                    className="admin-input"
+                    type="text"
+                    placeholder="e.g. Anti-Tarnish Gold Plated"
+                    value={form.material}
+                    onChange={(e) =>
+                      setForm({ ...form, material: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="admin-field">
+                  <label className="admin-field-label">Weight</label>
+                  <input
+                    className="admin-input"
+                    type="text"
+                    placeholder="e.g. 5g"
+                    value={form.weight}
+                    onChange={(e) =>
+                      setForm({ ...form, weight: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="admin-field">
+                <label className="admin-field-label">Description</label>
+                <textarea
+                  className="admin-input admin-textarea"
+                  rows={4}
+                  placeholder="Describe the product…"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                />
+              </div>
+
+              {formError && <div className="admin-form-error">{formError}</div>}
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                className="admin-btn-ghost"
+                onClick={closeModal}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="admin-btn-add"
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting
+                  ? 'Saving…'
+                  : editingId
+                    ? 'Save Changes'
+                    : 'Add Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Toasts ── */}
       <div className="admin-toast-container">

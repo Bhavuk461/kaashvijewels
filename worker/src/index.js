@@ -1,6 +1,9 @@
 // ============================================================
 // Kaashvi Admin API — Cloudflare Worker
-// Manages product-override data stored in Workers KV.
+// Manages product-override data + admin-created products.
+//   - Overrides (price / out-of-stock) stored in Workers KV.
+//   - Custom products stored in KV under the `product:` prefix.
+//   - Product images stored in Cloudflare R2 (env.PRODUCT_IMAGES).
 // ============================================================
 
 // --------------- CORS configuration ---------------
@@ -11,6 +14,18 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ];
 
+// Key prefix used to distinguish custom-product records from
+// plain override records inside the shared KV namespace.
+const PRODUCT_PREFIX = 'product:';
+
+// Allowed image content types and the max upload size (5 MB).
+const ALLOWED_IMAGE_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 /**
  * Build CORS headers for a given request origin.
  * Returns null if the origin is not allowed.
@@ -19,7 +34,7 @@ function corsHeaders(origin) {
   if (!origin || !ALLOWED_ORIGINS.includes(origin)) return null;
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
   };
@@ -59,7 +74,6 @@ function base64urlEncode(str) {
 
 /** Base64url-decode a string back to the original. */
 function base64urlDecode(str) {
-  // Restore standard base64 characters and padding
   let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4 !== 0) base64 += '=';
   return atob(base64);
@@ -84,7 +98,6 @@ async function getHmacKey(secret) {
 async function hmacSign(data, secret) {
   const key = await getHmacKey(secret);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
-  // Convert ArrayBuffer → base64url
   const bytes = Array.from(new Uint8Array(sig));
   const base64 = btoa(String.fromCharCode(...bytes));
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -93,7 +106,6 @@ async function hmacSign(data, secret) {
 /** Verify an HMAC-SHA256 signature. Returns true/false. */
 async function hmacVerify(data, signature, secret) {
   const key = await getHmacKey(secret);
-  // Decode the base64url signature back to an ArrayBuffer
   let base64 = signature.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4 !== 0) base64 += '=';
   const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -102,10 +114,7 @@ async function hmacVerify(data, signature, secret) {
 
 // --------------- JWT helpers ---------------
 
-/**
- * Create a signed JWT token.
- * Format: header.payload.signature  (all base64url-encoded)
- */
+/** Create a signed JWT token. Format: header.payload.signature */
 async function createToken(jwtSecret) {
   const header = { alg: 'HS256', typ: 'JWT' };
   const payload = {
@@ -122,10 +131,7 @@ async function createToken(jwtSecret) {
   return `${signingInput}.${signature}`;
 }
 
-/**
- * Verify and decode a JWT token.
- * Returns the payload object on success, or null on failure.
- */
+/** Verify and decode a JWT token. Returns payload object or null. */
 async function verifyToken(token, jwtSecret) {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
@@ -133,11 +139,9 @@ async function verifyToken(token, jwtSecret) {
   const [encodedHeader, encodedPayload, signature] = parts;
   const signingInput = `${encodedHeader}.${encodedPayload}`;
 
-  // Verify HMAC signature
   const valid = await hmacVerify(signingInput, signature, jwtSecret);
   if (!valid) return null;
 
-  // Decode and check expiry
   try {
     const payload = JSON.parse(base64urlDecode(encodedPayload));
     if (!payload.exp || payload.exp < Date.now()) return null; // expired
@@ -147,14 +151,63 @@ async function verifyToken(token, jwtSecret) {
   }
 }
 
+/**
+ * Authenticate a request via the Bearer token.
+ * Returns { ok: true } or { ok: false, response } so callers can
+ * short-circuit with the proper error response.
+ */
+async function requireAuth(request, env, origin) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Missing or malformed Authorization header' }, 401, origin),
+    };
+  }
+  const token = authHeader.slice(7);
+  const payload = await verifyToken(token, env.JWT_SECRET);
+  if (!payload) {
+    return { ok: false, response: jsonResponse({ error: 'Invalid or expired token' }, 401, origin) };
+  }
+  return { ok: true, payload };
+}
+
+// --------------- R2 helpers ---------------
+
+/** Normalise the configured public base URL (strip trailing slash). */
+function r2PublicBase(env) {
+  const base = env.R2_PUBLIC_URL || '';
+  return base.endsWith('/') ? base.slice(0, -1) : base;
+}
+
+/** Extract the R2 object key from a stored public image URL. */
+function r2KeyFromUrl(env, url) {
+  if (typeof url !== 'string') return null;
+  const base = r2PublicBase(env);
+  if (base && url.startsWith(base + '/')) {
+    return url.slice(base.length + 1);
+  }
+  try {
+    const u = new URL(url);
+    return u.pathname.replace(/^\//, '');
+  } catch {
+    return null;
+  }
+}
+
+/** Generate a short unique id. */
+function uniqueId() {
+  return (
+    Date.now().toString(36) +
+    '-' +
+    Math.random().toString(36).slice(2, 8)
+  );
+}
+
 // --------------- Route handlers ---------------
 
-/**
- * POST /api/login
- * Authenticate with username + password, receive a JWT.
- */
+/** POST /api/login — authenticate, receive a JWT. */
 async function handleLogin(request, env, origin) {
-  // Parse request body
   let body;
   try {
     body = await request.json();
@@ -163,39 +216,34 @@ async function handleLogin(request, env, origin) {
   }
 
   const { username, password } = body || {};
-
   if (!username || !password) {
     return jsonResponse({ error: 'Missing username or password' }, 400, origin);
   }
-
-  // Check username (case-sensitive)
   if (username !== 'Admin') {
     return jsonResponse({ error: 'Invalid credentials' }, 401, origin);
   }
 
-  // Hash the provided password and compare with stored hash
   const passwordHash = await sha256Hex(password);
   if (passwordHash !== env.ADMIN_PASSWORD_HASH) {
     return jsonResponse({ error: 'Invalid credentials' }, 401, origin);
   }
 
-  // Issue a JWT
   const token = await createToken(env.JWT_SECRET);
   return jsonResponse({ token }, 200, origin);
 }
 
 /**
- * GET /api/overrides
- * Public endpoint — returns all product overrides from KV.
+ * GET /api/overrides — public. Returns price/stock overrides from KV.
+ * Custom-product records (prefixed with `product:`) are filtered out.
  */
 async function handleGetOverrides(env, origin) {
   const overrides = {};
 
-  // KV list returns keys in pages; iterate through all of them.
   let cursor = null;
   do {
     const listResult = await env.PRODUCT_OVERRIDES.list({ cursor });
     for (const key of listResult.keys) {
+      if (key.name.startsWith(PRODUCT_PREFIX)) continue; // skip custom products
       const value = await env.PRODUCT_OVERRIDES.get(key.name, { type: 'json' });
       if (value !== null) {
         overrides[key.name] = value;
@@ -209,24 +257,11 @@ async function handleGetOverrides(env, origin) {
   return response;
 }
 
-/**
- * POST /api/update
- * Protected endpoint — update a single product override in KV.
- */
+/** POST /api/update — protected. Update a single override in KV. */
 async function handleUpdate(request, env, origin) {
-  // ---- Authenticate ----
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return jsonResponse({ error: 'Missing or malformed Authorization header' }, 401, origin);
-  }
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
 
-  const token = authHeader.slice(7); // strip "Bearer "
-  const payload = await verifyToken(token, env.JWT_SECRET);
-  if (!payload) {
-    return jsonResponse({ error: 'Invalid or expired token' }, 401, origin);
-  }
-
-  // ---- Parse body ----
   let body;
   try {
     body = await request.json();
@@ -235,12 +270,10 @@ async function handleUpdate(request, env, origin) {
   }
 
   const { productId, price, outOfStock } = body || {};
-
   if (!productId || typeof productId !== 'string') {
     return jsonResponse({ error: 'Missing or invalid productId' }, 400, origin);
   }
 
-  // Build the override value (only include provided fields)
   const override = {};
   if (price !== undefined) {
     if (typeof price !== 'number' || price < 0) {
@@ -259,13 +292,197 @@ async function handleUpdate(request, env, origin) {
     return jsonResponse({ error: 'No fields to update (provide price and/or outOfStock)' }, 400, origin);
   }
 
-  // ---- Read existing data and merge ----
   const existing = await env.PRODUCT_OVERRIDES.get(productId, { type: 'json' });
   const merged = { ...(existing || {}), ...override };
-
-  // ---- Write to KV ----
   await env.PRODUCT_OVERRIDES.put(productId, JSON.stringify(merged));
 
+  return jsonResponse({ success: true }, 200, origin);
+}
+
+/**
+ * POST /api/upload — protected. Accepts a single image file as
+ * multipart/form-data (field name: `file`). Stores it in R2 and
+ * returns { url } pointing at the public bucket URL.
+ */
+async function handleUpload(request, env, origin) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  if (!env.PRODUCT_IMAGES) {
+    return jsonResponse({ error: 'Image storage (R2) is not configured' }, 500, origin);
+  }
+  if (!r2PublicBase(env)) {
+    return jsonResponse({ error: 'R2_PUBLIC_URL is not configured' }, 500, origin);
+  }
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch {
+    return jsonResponse({ error: 'Invalid form data' }, 400, origin);
+  }
+
+  const file = form.get('file');
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    return jsonResponse({ error: 'No file provided' }, 400, origin);
+  }
+
+  const type = file.type;
+  const ext = ALLOWED_IMAGE_TYPES[type];
+  if (!ext) {
+    return jsonResponse({ error: 'Unsupported image type. Use JPG, PNG, or WebP.' }, 400, origin);
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return jsonResponse({ error: 'Image is too large (max 5 MB).' }, 400, origin);
+  }
+
+  const key = `products/${uniqueId()}.${ext}`;
+  const buffer = await file.arrayBuffer();
+  await env.PRODUCT_IMAGES.put(key, buffer, {
+    httpMetadata: { contentType: type },
+  });
+
+  const url = `${r2PublicBase(env)}/${key}`;
+  return jsonResponse({ url, key }, 200, origin);
+}
+
+/** Validate and normalise a custom-product payload. Returns { product } or { error }. */
+function buildProduct(body, id) {
+  const allowedCategories = ['anti-tarnish', 'bracelet', 'korean'];
+  const {
+    name,
+    category,
+    type,
+    price,
+    material,
+    weight,
+    description,
+    badge,
+    images,
+  } = body || {};
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return { error: 'Name is required' };
+  }
+  if (!allowedCategories.includes(category)) {
+    return { error: 'Category must be anti-tarnish, bracelet, or korean' };
+  }
+  if (typeof price !== 'number' || price < 0 || Number.isNaN(price)) {
+    return { error: 'Price must be a non-negative number' };
+  }
+  if (!Array.isArray(images) || images.length === 0) {
+    return { error: 'At least one image is required' };
+  }
+  if (!images.every((u) => typeof u === 'string' && u)) {
+    return { error: 'Invalid image URL in images array' };
+  }
+
+  return {
+    product: {
+      id,
+      name: name.trim(),
+      category,
+      type: (type || '').trim(),
+      price,
+      material: (material || '').trim(),
+      weight: (weight || '').trim(),
+      description: (description || '').trim(),
+      badge: (badge || '').trim(),
+      image: images[0],
+      images,
+      custom: true,
+    },
+  };
+}
+
+/** GET /api/products — public. List all admin-created products. */
+async function handleGetProducts(env, origin) {
+  const list = [];
+
+  let cursor = null;
+  do {
+    const listResult = await env.PRODUCT_OVERRIDES.list({ prefix: PRODUCT_PREFIX, cursor });
+    for (const key of listResult.keys) {
+      const value = await env.PRODUCT_OVERRIDES.get(key.name, { type: 'json' });
+      if (value !== null) list.push(value);
+    }
+    cursor = listResult.list_complete ? null : listResult.cursor;
+  } while (cursor);
+
+  const response = jsonResponse({ products: list }, 200, origin);
+  response.headers.set('Cache-Control', 'public, max-age=30');
+  return response;
+}
+
+/** POST /api/products — protected. Create a custom product. */
+async function handleCreateProduct(request, env, origin) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
+  }
+
+  const id = `custom-${uniqueId()}`;
+  const result = buildProduct(body, id);
+  if (result.error) return jsonResponse({ error: result.error }, 400, origin);
+
+  await env.PRODUCT_OVERRIDES.put(PRODUCT_PREFIX + id, JSON.stringify(result.product));
+  return jsonResponse({ success: true, product: result.product }, 200, origin);
+}
+
+/** PUT /api/products/:id — protected. Update a custom product. */
+async function handleUpdateProduct(request, env, origin, id) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  const existing = await env.PRODUCT_OVERRIDES.get(PRODUCT_PREFIX + id, { type: 'json' });
+  if (!existing) return jsonResponse({ error: 'Product not found' }, 404, origin);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
+  }
+
+  const result = buildProduct(body, id);
+  if (result.error) return jsonResponse({ error: result.error }, 400, origin);
+
+  // Delete any R2 images that are no longer referenced.
+  if (env.PRODUCT_IMAGES && Array.isArray(existing.images)) {
+    const keep = new Set(result.product.images);
+    for (const oldUrl of existing.images) {
+      if (!keep.has(oldUrl)) {
+        const key = r2KeyFromUrl(env, oldUrl);
+        if (key) await env.PRODUCT_IMAGES.delete(key).catch(() => {});
+      }
+    }
+  }
+
+  await env.PRODUCT_OVERRIDES.put(PRODUCT_PREFIX + id, JSON.stringify(result.product));
+  return jsonResponse({ success: true, product: result.product }, 200, origin);
+}
+
+/** DELETE /api/products/:id — protected. Delete a custom product + its images. */
+async function handleDeleteProduct(request, env, origin, id) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  const existing = await env.PRODUCT_OVERRIDES.get(PRODUCT_PREFIX + id, { type: 'json' });
+  if (!existing) return jsonResponse({ error: 'Product not found' }, 404, origin);
+
+  if (env.PRODUCT_IMAGES && Array.isArray(existing.images)) {
+    for (const url of existing.images) {
+      const key = r2KeyFromUrl(env, url);
+      if (key) await env.PRODUCT_IMAGES.delete(key).catch(() => {});
+    }
+  }
+
+  await env.PRODUCT_OVERRIDES.delete(PRODUCT_PREFIX + id);
   return jsonResponse({ success: true }, 200, origin);
 }
 
@@ -278,25 +495,38 @@ export default {
     const method = request.method;
     const origin = request.headers.get('Origin');
 
-    // Handle CORS preflight
     if (method === 'OPTIONS') {
       return handleOptions(request);
     }
 
-    // Route dispatch
+    // Static routes
     if (pathname === '/api/login' && method === 'POST') {
       return handleLogin(request, env, origin);
     }
-
     if (pathname === '/api/overrides' && method === 'GET') {
       return handleGetOverrides(env, origin);
     }
-
     if (pathname === '/api/update' && method === 'POST') {
       return handleUpdate(request, env, origin);
     }
+    if (pathname === '/api/upload' && method === 'POST') {
+      return handleUpload(request, env, origin);
+    }
+    if (pathname === '/api/products' && method === 'GET') {
+      return handleGetProducts(env, origin);
+    }
+    if (pathname === '/api/products' && method === 'POST') {
+      return handleCreateProduct(request, env, origin);
+    }
 
-    // Fallback — 404
+    // Dynamic routes: /api/products/:id
+    const productMatch = pathname.match(/^\/api\/products\/([^/]+)$/);
+    if (productMatch) {
+      const id = decodeURIComponent(productMatch[1]);
+      if (method === 'PUT') return handleUpdateProduct(request, env, origin, id);
+      if (method === 'DELETE') return handleDeleteProduct(request, env, origin, id);
+    }
+
     return jsonResponse({ error: 'Not found' }, 404, origin);
   },
 };
