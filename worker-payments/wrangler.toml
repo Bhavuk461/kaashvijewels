@@ -1,0 +1,16 @@
+name = "kaashvi-payments"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set via `wrangler secret put`):
+#   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
+#   APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN
+
+[vars]
+ALLOWED_ORIGIN = "https://thekaashvijewels.com"
+
+# Bind the same KV used by the admin API so we can read live price overrides
+# and custom products created by the admin.
+[[kv_namespaces]]
+binding = "PRODUCT_OVERRIDES"
+id = "e23c0ce903554bd5828cd8bd78183181"
