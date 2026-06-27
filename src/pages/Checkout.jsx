@@ -84,6 +84,7 @@ export default function Checkout() {
       name: item.name,
       price: item.price,
       quantity: item.quantity,
+      ...(item.selectedColor ? { selectedColor: item.selectedColor } : {}),
     }));
 
     setSubmitting(true);

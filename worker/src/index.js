@@ -269,7 +269,7 @@ async function handleUpdate(request, env, origin) {
     return jsonResponse({ error: 'Invalid JSON body' }, 400, origin);
   }
 
-  const { productId, price, outOfStock, images } = body || {};
+  const { productId, price, outOfStock, images, colors } = body || {};
   if (!productId || typeof productId !== 'string') {
     return jsonResponse({ error: 'Missing or invalid productId' }, 400, origin);
   }
@@ -296,9 +296,18 @@ async function handleUpdate(request, env, origin) {
     }
     override.images = images;
   }
+  if (colors !== undefined) {
+    if (!Array.isArray(colors)) {
+      return jsonResponse({ error: 'colors must be an array' }, 400, origin);
+    }
+    if (colors.length > 0 && !colors.every((c) => typeof c === 'string' && c.trim())) {
+      return jsonResponse({ error: 'Each color must be a non-empty string' }, 400, origin);
+    }
+    override.colors = colors;
+  }
 
   if (Object.keys(override).length === 0) {
-    return jsonResponse({ error: 'No fields to update (provide price, outOfStock, and/or images)' }, 400, origin);
+    return jsonResponse({ error: 'No fields to update (provide price, outOfStock, images, and/or colors)' }, 400, origin);
   }
 
   const existing = await env.PRODUCT_OVERRIDES.get(productId, { type: 'json' });

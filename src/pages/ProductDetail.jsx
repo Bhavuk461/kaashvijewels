@@ -13,7 +13,7 @@ export default function ProductDetail() {
   const products = useAllProducts();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const { getProductPrice, isOutOfStock, getProductImages } = useProductOverrides();
+  const { getProductPrice, isOutOfStock, getProductImages, getProductColors } = useProductOverrides();
 
   // Find product by id
   const product = products.find((p) => p.id === id);
@@ -59,17 +59,29 @@ export default function ProductDetail() {
 
   const displayPrice = getProductPrice(product);
   const outOfStock = isOutOfStock(product.id);
+  const availableColors = getProductColors(product);
+  const [selectedColor, setSelectedColor] = useState('');
 
   // ── Add to cart ──
   const handleAddToCart = () => {
     if (outOfStock) return;
-    addToCart({ ...product, price: displayPrice }, quantity);
+    if (availableColors.length > 0 && !selectedColor) {
+      return; // color required but not selected — button is disabled
+    }
+    const cartProduct = { ...product, price: displayPrice };
+    if (selectedColor) cartProduct.selectedColor = selectedColor;
+    addToCart(cartProduct, quantity);
   };
 
   // ── Buy now → add to cart + navigate to checkout ──
   const handleBuyNow = () => {
     if (outOfStock) return;
-    addToCart({ ...product, price: displayPrice }, quantity);
+    if (availableColors.length > 0 && !selectedColor) {
+      return;
+    }
+    const cartProduct = { ...product, price: displayPrice };
+    if (selectedColor) cartProduct.selectedColor = selectedColor;
+    addToCart(cartProduct, quantity);
     navigate('/checkout');
   };
 
@@ -145,6 +157,25 @@ export default function ProductDetail() {
               </div>
             </div>
 
+            {/* Color Selector */}
+            {availableColors.length > 0 && !outOfStock && (
+              <div className="product-detail__color-selector">
+                <span className="product-detail__quantity-label">Color:</span>
+                <select
+                  className="product-detail__color-dropdown"
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                >
+                  <option value="">Select Color</option>
+                  {availableColors.map((color) => (
+                    <option key={color} value={color}>
+                      {color}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Quantity Selector */}
             {!outOfStock && (
               <div className="product-detail__quantity">
@@ -169,10 +200,20 @@ export default function ProductDetail() {
                 </button>
               ) : (
                 <>
-                  <button className="btn btn-primary btn-lg" onClick={handleAddToCart}>
+                  <button
+                    className="btn btn-primary btn-lg"
+                    onClick={handleAddToCart}
+                    disabled={availableColors.length > 0 && !selectedColor}
+                    style={availableColors.length > 0 && !selectedColor ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  >
                     🛒 Add to Cart
                   </button>
-                  <button className="btn btn-gold btn-lg" onClick={handleBuyNow}>
+                  <button
+                    className="btn btn-gold btn-lg"
+                    onClick={handleBuyNow}
+                    disabled={availableColors.length > 0 && !selectedColor}
+                    style={availableColors.length > 0 && !selectedColor ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  >
                     ⚡ Buy Now
                   </button>
                 </>

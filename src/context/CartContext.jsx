@@ -19,10 +19,14 @@ export function CartProvider({ children }) {
 
   const addToCart = (product, quantity = 1) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(item =>
+        item.id === product.id &&
+        (item.selectedColor || '') === (product.selectedColor || '')
+      );
       if (existing) {
         return prev.map(item =>
-          item.id === product.id
+          (item.id === product.id &&
+            (item.selectedColor || '') === (product.selectedColor || ''))
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -32,19 +36,25 @@ export function CartProvider({ children }) {
     showToast(`${product.name} added to cart!`, 'success');
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = (productId, selectedColor) => {
+    setCart(prev => prev.filter(item =>
+      !(item.id === productId &&
+        (item.selectedColor || '') === (selectedColor || ''))
+    ));
     showToast('Item removed from cart', 'info');
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = (productId, quantity, selectedColor) => {
     if (quantity < 1) {
-      removeFromCart(productId);
+      removeFromCart(productId, selectedColor);
       return;
     }
     setCart(prev =>
       prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
+        (item.id === productId &&
+          (item.selectedColor || '') === (selectedColor || ''))
+          ? { ...item, quantity }
+          : item
       )
     );
   };

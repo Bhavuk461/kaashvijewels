@@ -41,7 +41,11 @@ export default function Cart() {
           <div className="cart-items">
             {cart.map((item) => {
               const categoryLabel =
-                item.category === 'anti-tarnish' ? 'Anti-Tarnish' : 'Korean';
+                item.category === 'anti-tarnish'
+                  ? 'Anti-Tarnish'
+                  : item.category === 'bracelet'
+                    ? 'Bracelet'
+                    : 'Korean';
 
               return (
                 <div className="cart-item" key={item.id}>
@@ -67,19 +71,31 @@ export default function Cart() {
                     >
                       {categoryLabel}
                     </p>
+                    {item.selectedColor && (
+                      <p
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--color-text-muted)',
+                          fontWeight: 500,
+                          marginTop: '2px',
+                        }}
+                      >
+                        Color: <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{item.selectedColor}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Item Actions */}
                   <div className="cart-item__actions">
                     <button
                       className="cart-item__remove"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(item.id, item.selectedColor)}
                     >
                       ✕ Remove
                     </button>
                     <div className="quantity-controls">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedColor)}
                         aria-label="Decrease quantity"
                       >
                         −
@@ -87,7 +103,7 @@ export default function Cart() {
                       <span>{item.quantity}</span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.id, Math.min(item.quantity + 1, 10))
+                          updateQuantity(item.id, Math.min(item.quantity + 1, 10), item.selectedColor)
                         }
                         aria-label="Increase quantity"
                       >

@@ -14,6 +14,18 @@ const CATEGORY_OPTIONS = [
 ];
 const BADGE_OPTIONS = ['', 'Bestseller', 'New'];
 
+const COLOR_OPTIONS = [
+  'Gold', 'Silver', 'Rose Gold', 'Black', 'White',
+  'Red', 'Blue', 'Green', 'Pink', 'Purple', 'Multi-Color',
+];
+
+const COLOR_HEX_MAP = {
+  Gold: '#c9a96e', Silver: '#c0c0c0', 'Rose Gold': '#d4a08f',
+  Black: '#222222', White: '#f0f0f0', Red: '#e74c3c',
+  Blue: '#3498db', Green: '#2ecc71', Pink: '#e98db2',
+  Purple: '#9b59b6', 'Multi-Color': 'conic-gradient(red, orange, yellow, green, blue, violet, red)',
+};
+
 const EMPTY_FORM = {
   name: '',
   category: 'anti-tarnish',
@@ -27,7 +39,7 @@ const EMPTY_FORM = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { overrides, loading, isOutOfStock, getProductImages, refreshOverrides } =
+  const { overrides, loading, isOutOfStock, getProductImages, getProductColors, refreshOverrides } =
     useProductOverrides();
   const products = useAllProducts();
 
@@ -57,6 +69,11 @@ export default function AdminDashboard() {
   const imgFileInputRef = useRef(null);
   const imgDragIndex = useRef(null);
 
+  // ── Color dropdown state ──
+  const [colorSelections, setColorSelections] = useState({});
+  const [colorPanelOpen, setColorPanelOpen] = useState(null); // productId or null
+  const colorPanelRef = useRef(null);
+
   // ── Auth guard ──
   useEffect(() => {
     const token = sessionStorage.getItem('adminToken');
@@ -71,6 +88,14 @@ export default function AdminDashboard() {
       initial[p.id] = override?.price != null ? override.price : p.price;
     });
     setPrices(initial);
+
+    // Also initialize color selections from overrides
+    const initialColors = {};
+    products.forEach((p) => {
+      const override = overrides[p.id];
+      initialColors[p.id] = override?.colors && Array.isArray(override.colors) ? override.colors : [];
+    });
+    setColorSelections(initialColors);
   }, [overrides, products]);
 
   // ── Toast helper ──
@@ -159,6 +184,69 @@ export default function AdminDashboard() {
       setSavingId(null);
     }
   };
+
+  // ── Save colors ──
+  const handleSaveColors = async (productId, colors) => {
+    const token = getToken();
+    if (!token) return;
+
+    setSavingId(productId);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId, colors }),
+      });
+      if (res.ok) {
+        showToast(`Colors updated for ${productId}`);
+        await refreshOverrides();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Failed to update colors', 'error');
+      }
+    } catch {
+      showToast('Network error. Please try again.', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const toggleColor = (productId, color) => {
+    setColorSelections((prev) => {
+      const current = prev[productId] || [];
+      let next;
+      if (current.includes(color)) {
+        next = current.filter((c) => c !== color);
+      } else {
+        next = [...current, color];
+      }
+      // Auto-save
+      handleSaveColors(productId, next);
+      return { ...prev, [productId]: next };
+    });
+  };
+
+  const clearColors = (productId) => {
+    setColorSelections((prev) => ({ ...prev, [productId]: [] }));
+    handleSaveColors(productId, []);
+    setColorPanelOpen(null);
+  };
+
+  // Close color panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (colorPanelRef.current && !colorPanelRef.current.contains(e.target)) {
+        setColorPanelOpen(null);
+      }
+    };
+    if (colorPanelOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [colorPanelOpen]);
 
   // ── Logout ──
   const handleLogout = () => {
@@ -619,6 +707,7 @@ export default function AdminDashboard() {
                 <th>Category</th>
                 <th>Price (₹)</th>
                 <th>Stock</th>
+                <th>Colors</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -689,6 +778,64 @@ export default function AdminDashboard() {
                         <span className="admin-stock-dot" />
                         {oos ? 'Out of Stock' : 'In Stock'}
                       </button>
+                    </td>
+                    <td data-label="Colors">
+                      <div className="admin-color-wrapper" ref={colorPanelOpen === product.id ? colorPanelRef : undefined}>
+                        <button
+                          className="admin-color-trigger"
+                          onClick={() => setColorPanelOpen(colorPanelOpen === product.id ? null : product.id)}
+                          disabled={isSaving}
+                        >
+                          {(colorSelections[product.id] || []).length > 0 ? (
+                            <span className="admin-color-chips">
+                              {(colorSelections[product.id] || []).slice(0, 3).map((c) => (
+                                <span key={c} className="admin-color-chip">
+                                  <span
+                                    className="admin-color-chip-swatch"
+                                    style={{ background: COLOR_HEX_MAP[c] || '#888' }}
+                                  />
+                                  {c}
+                                </span>
+                              ))}
+                              {(colorSelections[product.id] || []).length > 3 && (
+                                <span className="admin-color-chip">+{(colorSelections[product.id] || []).length - 3}</span>
+                              )}
+                            </span>
+                          ) : (
+                            'None'
+                          )}
+                          <span className={`admin-color-trigger-arrow${colorPanelOpen === product.id ? ' open' : ''}`}>▼</span>
+                        </button>
+                        {colorPanelOpen === product.id && (
+                          <div className="admin-color-panel">
+                            <button
+                              className="admin-color-option admin-color-option--none"
+                              onClick={() => clearColors(product.id)}
+                            >
+                              None (clear all)
+                            </button>
+                            {COLOR_OPTIONS.map((color) => {
+                              const isSelected = (colorSelections[product.id] || []).includes(color);
+                              return (
+                                <button
+                                  key={color}
+                                  className="admin-color-option"
+                                  onClick={() => toggleColor(product.id, color)}
+                                >
+                                  <span className={`admin-color-checkbox${isSelected ? ' checked' : ''}`}>
+                                    {isSelected ? '✓' : ''}
+                                  </span>
+                                  <span
+                                    className="admin-color-swatch"
+                                    style={{ background: COLOR_HEX_MAP[color] || '#888' }}
+                                  />
+                                  {color}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td data-label="Actions">
                       <div className="admin-row-actions">

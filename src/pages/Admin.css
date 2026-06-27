@@ -499,6 +499,140 @@
   box-shadow: 0 0 6px var(--admin-danger);
 }
 
+/* ── Color Dropdown (Multi-select) ──────────────────────────── */
+
+.admin-color-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-color-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--admin-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all var(--admin-transition);
+  white-space: nowrap;
+  min-width: 110px;
+  max-width: 200px;
+}
+
+.admin-color-trigger:hover {
+  border-color: var(--admin-gold);
+}
+
+.admin-color-trigger-arrow {
+  margin-left: auto;
+  font-size: 0.6rem;
+  transition: transform var(--admin-transition);
+}
+
+.admin-color-trigger-arrow.open {
+  transform: rotate(180deg);
+}
+
+.admin-color-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  animation: adminFadeIn 0.15s ease;
+}
+
+.admin-color-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--admin-text);
+  cursor: pointer;
+  transition: background var(--admin-transition);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.admin-color-option:hover {
+  background: var(--admin-surface-hover);
+}
+
+.admin-color-option--none {
+  color: var(--admin-text-muted);
+  border-bottom: 1px solid var(--admin-border);
+  font-style: italic;
+}
+
+.admin-color-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--admin-border);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--admin-transition);
+  font-size: 0.65rem;
+  color: transparent;
+}
+
+.admin-color-checkbox.checked {
+  background: var(--admin-gold);
+  border-color: var(--admin-gold);
+  color: #0f0f0f;
+}
+
+.admin-color-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.admin-color-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  overflow: hidden;
+  max-width: 150px;
+}
+
+.admin-color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: var(--admin-gold-dim);
+  color: var(--admin-gold);
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-color-chip-swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 /* ── Toast Notifications ─────────────────────────────────────── */
 
 .admin-toast-container {

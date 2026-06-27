@@ -73,6 +73,17 @@ export function ProductOverridesProvider({ children }) {
     [overrides]
   );
 
+  const getProductColors = useCallback(
+    (product) => {
+      const override = overrides[product.id];
+      if (override?.colors && Array.isArray(override.colors)) {
+        return override.colors;
+      }
+      return [];
+    },
+    [overrides]
+  );
+
   return (
     <ProductOverridesContext.Provider
       value={{
@@ -82,6 +93,7 @@ export function ProductOverridesProvider({ children }) {
         getProductPrice,
         isOutOfStock,
         getProductImages,
+        getProductColors,
         refreshOverrides,
       }}
     >
