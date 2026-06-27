@@ -1172,24 +1172,48 @@ h4 { font-size: 1.25rem; }
   margin-bottom: var(--space-xl);
 }
 
-.product-detail__color-dropdown {
-  padding: 10px 16px;
+.product-detail__color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.product-detail__color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
   border: 2px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-card);
   color: var(--color-text);
-  font-size: 0.95rem;
-  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  min-width: 160px;
+  transition: all 0.2s ease;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.product-detail__color-dropdown:focus {
+.product-detail__color-chip:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-lighter);
+}
+
+.product-detail__color-chip--active {
   border-color: var(--color-primary);
+  background: var(--color-primary-lighter);
+  color: var(--color-primary-dark);
+  font-weight: 600;
   box-shadow: 0 0 0 3px rgba(192, 122, 142, 0.15);
 }
+
+.product-detail__color-chip-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 
 .product-detail__quantity-label {
   font-weight: 600;

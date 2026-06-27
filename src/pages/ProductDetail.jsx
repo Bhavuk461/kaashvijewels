@@ -6,6 +6,13 @@ import { useAllProducts } from '../hooks/useAllProducts';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
 
+const COLOR_HEX_MAP = {
+  Gold: '#c9a96e', Silver: '#c0c0c0', 'Rose Gold': '#d4a08f',
+  Black: '#222222', White: '#f0f0f0', Red: '#e74c3c',
+  Blue: '#3498db', Green: '#2ecc71', Pink: '#e98db2',
+  Purple: '#9b59b6', 'Multi-Color': 'conic-gradient(red, orange, yellow, green, blue, violet, red)',
+};
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -161,18 +168,25 @@ export default function ProductDetail() {
             {availableColors.length > 0 && !outOfStock && (
               <div className="product-detail__color-selector">
                 <span className="product-detail__quantity-label">Color:</span>
-                <select
-                  className="product-detail__color-dropdown"
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                >
-                  <option value="">Select Color</option>
-                  {availableColors.map((color) => (
-                    <option key={color} value={color}>
-                      {color}
-                    </option>
-                  ))}
-                </select>
+                <div className="product-detail__color-options">
+                  {availableColors.map((color) => {
+                    const isSelected = selectedColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`product-detail__color-chip${isSelected ? ' product-detail__color-chip--active' : ''}`}
+                        onClick={() => setSelectedColor(color)}
+                      >
+                        <span
+                          className="product-detail__color-chip-swatch"
+                          style={{ background: COLOR_HEX_MAP[color] || '#888' }}
+                        />
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
