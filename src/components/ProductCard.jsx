@@ -66,7 +66,8 @@ export default function ProductCard({ product }) {
             <span className="product-card__sold-out">Sold Out</span>
           ) : (
             <>
-              ₹{displayPrice}
+              <span className="product-card__price-original">₹{Math.round(displayPrice * 1.3)}</span>
+              <span className="product-card__price-current">₹{displayPrice}</span>
               <span>MRP incl. taxes</span>
             </>
           )}

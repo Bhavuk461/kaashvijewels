@@ -143,7 +143,10 @@ export default function ProductDetail() {
               {outOfStock ? (
                 <span style={{ color: '#c0392b', fontWeight: 700 }}>Out of Stock</span>
               ) : (
-                <>₹{displayPrice}</>
+                <>
+                  <span className="product-detail__price-original">₹{Math.round(displayPrice * 1.3)}</span>
+                  <span className="product-detail__price-current">₹{displayPrice}</span>
+                </>
               )}
             </p>
             <p className="product-detail__description">{product.description}</p>
