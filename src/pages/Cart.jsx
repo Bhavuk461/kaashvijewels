@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useProductOverrides } from '../context/ProductOverridesContext';
 import { asset } from '../utils/assetPath';
 
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity, getCartTotal } = useCart();
+  const { getProductPrice } = useProductOverrides();
 
   const subtotal = getCartTotal();
   const gst = Math.round(subtotal * 0.18);
@@ -59,7 +61,7 @@ export default function Cart() {
                   {/* Item Info */}
                   <div className="cart-item__info">
                     <h4 className="cart-item__name">{item.name}</h4>
-                    <p className="cart-item__price">₹{item.price}</p>
+                    <p className="cart-item__price">₹{getProductPrice(item)}</p>
                     <p
                       style={{
                         fontSize: '0.8rem',

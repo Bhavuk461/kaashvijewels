@@ -1,7 +1,7 @@
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
-import { ProductOverridesProvider } from './context/ProductOverridesContext';
+import { ProductOverridesProvider, useProductOverrides } from './context/ProductOverridesContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -38,6 +38,16 @@ function Toast() {
 function AppLayout() {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+  const { loading } = useProductOverrides();
+
+  if (loading && !isAdmin) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
+        <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid var(--color-border)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', marginTop: '16px', fontWeight: 500 }}>Loading Kaashvi Jewels...</p>
+      </div>
+    );
+  }
 
   return (
     <>

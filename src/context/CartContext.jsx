@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useProductOverrides } from './ProductOverridesContext';
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
+  const { getProductPrice } = useProductOverrides();
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem('kaashvi-cart');
@@ -65,7 +67,10 @@ export function CartProvider({ children }) {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce((total, item) => {
+      const price = getProductPrice ? getProductPrice(item) : item.price;
+      return total + price * item.quantity;
+    }, 0);
   };
 
   const getCartCount = () => {

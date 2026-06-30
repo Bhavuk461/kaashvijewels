@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useProductOverrides } from '../context/ProductOverridesContext';
 
 const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'https://kaashvi-payments.greatgatch1.workers.dev';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, getCartTotal, clearCart, showToast } = useCart();
+  const { getProductPrice } = useProductOverrides();
   const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -82,7 +84,7 @@ export default function Checkout() {
     const items = cart.map((item) => ({
       id: item.id,
       name: item.name,
-      price: item.price,
+      price: getProductPrice(item),
       quantity: item.quantity,
       ...(item.selectedColor ? { selectedColor: item.selectedColor } : {}),
     }));
@@ -301,7 +303,7 @@ export default function Checkout() {
                 <span>
                   {item.name} × {item.quantity}
                 </span>
-                <span>₹{item.price * item.quantity}</span>
+                <span>₹{getProductPrice(item) * item.quantity}</span>
               </div>
             ))}
 
