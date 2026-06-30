@@ -69,6 +69,13 @@ export default function ProductDetail() {
   const availableColors = getProductColors(product);
   const [selectedColor, setSelectedColor] = useState('');
 
+  // Auto-select if only one option is available
+  useEffect(() => {
+    if (availableColors && availableColors.length === 1) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors]);
+
   // ── Add to cart ──
   const handleAddToCart = () => {
     if (outOfStock) return;
