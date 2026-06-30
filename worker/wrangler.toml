@@ -10,6 +10,10 @@ compatibility_date = "2024-01-01"
 binding = "PRODUCT_OVERRIDES"
 id = "e23c0ce903554bd5828cd8bd78183181"
 
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "333a9733edb74de1806e0d439fd89b94"
+
 [[r2_buckets]]
 binding = "PRODUCT_IMAGES"
 bucket_name = "kaashvi-product-images"

@@ -189,6 +189,15 @@ async function createOrder(request, env, origin) {
   }, origin);
 }
 
+function generateOrderNumber() {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = 'KJ-';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 async function verify(request, env, origin) {
   const body = await request.json();
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, customer, items } = body;
@@ -203,9 +212,68 @@ async function verify(request, env, origin) {
   }
 
   const totals = await computeTotals(Array.isArray(items) ? items : [], env);
+
+  // Check if this order was already processed
+  let orderNumber = await env.ORDERS.get(`razorpay:${razorpay_order_id}`);
+  let orderData = null;
+
+  if (orderNumber) {
+    const existingStr = await env.ORDERS.get(orderNumber);
+    if (existingStr) {
+      orderData = JSON.parse(existingStr);
+    }
+  } else {
+    // Generate new unique human-friendly order number
+    orderNumber = generateOrderNumber();
+    // Keep trying if by remote chance it conflicts
+    let attempts = 0;
+    while (attempts < 5) {
+      const exists = await env.ORDERS.get(orderNumber);
+      if (!exists) break;
+      orderNumber = generateOrderNumber();
+      attempts++;
+    }
+
+    orderData = {
+      orderId: orderNumber,
+      razorpayOrderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      customer: customer || {},
+      items: items || [],
+      totals: totals.error ? {} : totals,
+      status: 'preparing',
+      statusHistory: [
+        { status: 'preparing', timestamp: new Date().toISOString() }
+      ],
+      estimatedDelivery: null,
+      createdAt: new Date().toISOString()
+    };
+
+    // Save order data to KV
+    await env.ORDERS.put(orderNumber, JSON.stringify(orderData));
+    // Index by Razorpay Order ID to prevent double processing
+    await env.ORDERS.put(`razorpay:${razorpay_order_id}`, orderNumber);
+
+    // Save reverse-lookup index for customer email
+    if (customer && customer.email) {
+      const emailKey = `email:${customer.email.toLowerCase().trim()}`;
+      let emailOrders = [];
+      try {
+        const existing = await env.ORDERS.get(emailKey, { type: 'json' });
+        if (Array.isArray(existing)) {
+          emailOrders = existing;
+        }
+      } catch (e) {}
+      if (!emailOrders.includes(orderNumber)) {
+        emailOrders.push(orderNumber);
+        await env.ORDERS.put(emailKey, JSON.stringify(emailOrders));
+      }
+    }
+  }
+
   await forwardToAppsScript(env, {
     event: 'payment.verified',
-    orderId: razorpay_order_id,
+    orderId: orderNumber,
     paymentId: razorpay_payment_id,
     customer: customer || {},
     items: items || [],
@@ -213,7 +281,7 @@ async function verify(request, env, origin) {
     status: 'PAID',
   });
 
-  return json({ ok: true }, origin);
+  return json({ ok: true, orderId: orderNumber }, origin);
 }
 
 async function webhook(request, env, origin) {
@@ -227,9 +295,48 @@ async function webhook(request, env, origin) {
   const evt = JSON.parse(raw);
   if (evt.event === 'payment.captured') {
     const p = evt.payload.payment.entity;
+    
+    // Check if order already exists via Razorpay order ID index
+    let orderNumber = await env.ORDERS.get(`razorpay:${p.order_id}`);
+    
+    if (!orderNumber) {
+      // Fallback: create a basic skeleton order if verify route wasn't called/finished yet
+      orderNumber = generateOrderNumber();
+      const orderData = {
+        orderId: orderNumber,
+        razorpayOrderId: p.order_id,
+        paymentId: p.id,
+        customer: { email: p.email, phone: p.contact },
+        items: [],
+        totals: { total: p.amount / 100 },
+        status: 'preparing',
+        statusHistory: [
+          { status: 'preparing', timestamp: new Date().toISOString() }
+        ],
+        estimatedDelivery: null,
+        createdAt: new Date().toISOString()
+      };
+
+      await env.ORDERS.put(orderNumber, JSON.stringify(orderData));
+      await env.ORDERS.put(`razorpay:${p.order_id}`, orderNumber);
+
+      if (p.email) {
+        const emailKey = `email:${p.email.toLowerCase().trim()}`;
+        let emailOrders = [];
+        try {
+          const existing = await env.ORDERS.get(emailKey, { type: 'json' });
+          if (Array.isArray(existing)) emailOrders = existing;
+        } catch (e) {}
+        if (!emailOrders.includes(orderNumber)) {
+          emailOrders.push(orderNumber);
+          await env.ORDERS.put(emailKey, JSON.stringify(emailOrders));
+        }
+      }
+    }
+
     await forwardToAppsScript(env, {
       event: 'payment.captured.webhook',
-      orderId: p.order_id,
+      orderId: orderNumber,
       paymentId: p.id,
       customer: { email: p.email, phone: p.contact },
       items: [],

@@ -516,6 +516,97 @@ async function handleDeleteProduct(request, env, origin, id) {
   return jsonResponse({ success: true }, 200, origin);
 }
 
+// --------------- Order management handlers ---------------
+
+async function handleGetOrders(request, env, origin) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  let keys = [];
+  let cursor = null;
+  do {
+    const list = await env.ORDERS.list({ prefix: 'KJ-', cursor });
+    keys.push(...list.keys);
+    cursor = list.cursor;
+  } while (cursor);
+
+  const orders = [];
+  for (const k of keys) {
+    const val = await env.ORDERS.get(k.name, { type: 'json' });
+    if (val) orders.push(val);
+  }
+
+  // Sort by createdAt descending
+  orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return jsonResponse(orders, 200, origin);
+}
+
+async function handleGetOrder(request, env, origin, idOrEmail) {
+  const url = new URL(request.url);
+  const emailQuery = url.searchParams.get('email');
+
+  if (emailQuery) {
+    const emailKey = `email:${emailQuery.toLowerCase().trim()}`;
+    const orderNumbers = await env.ORDERS.get(emailKey, { type: 'json' });
+    if (!Array.isArray(orderNumbers) || orderNumbers.length === 0) {
+      return jsonResponse([], 200, origin);
+    }
+    const orders = [];
+    for (const num of orderNumbers) {
+      const order = await env.ORDERS.get(num, { type: 'json' });
+      if (order) orders.push(order);
+    }
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return jsonResponse(orders, 200, origin);
+  }
+
+  const order = await env.ORDERS.get(idOrEmail, { type: 'json' });
+  if (!order) {
+    return jsonResponse({ error: 'Order not found' }, 404, origin);
+  }
+  return jsonResponse(order, 200, origin);
+}
+
+async function handleUpdateOrderStatus(request, env, origin, id) {
+  const auth = await requireAuth(request, env, origin);
+  if (!auth.ok) return auth.response;
+
+  const body = await request.json().catch(() => null);
+  const { status } = body || {};
+
+  if (status !== 'shipping' && status !== 'reached') {
+    return jsonResponse({ error: 'Invalid status. Must be "shipping" or "reached"' }, 400, origin);
+  }
+
+  const orderStr = await env.ORDERS.get(id);
+  if (!orderStr) {
+    return jsonResponse({ error: 'Order not found' }, 404, origin);
+  }
+
+  const order = JSON.parse(orderStr);
+  order.status = status;
+  
+  if (!Array.isArray(order.statusHistory)) {
+    order.statusHistory = [];
+  }
+  order.statusHistory.push({
+    status,
+    timestamp: new Date().toISOString()
+  });
+
+  if (status === 'shipping') {
+    const estDate = new Date();
+    estDate.setDate(estDate.getDate() + 5);
+    order.estimatedDelivery = estDate.toISOString();
+  } else if (status === 'reached') {
+    order.estimatedDelivery = null;
+  }
+
+  await env.ORDERS.put(id, JSON.stringify(order));
+  return jsonResponse({ success: true, order }, 200, origin);
+}
+
 // --------------- Main router ---------------
 
 export default {
@@ -547,6 +638,22 @@ export default {
     }
     if (pathname === '/api/products' && method === 'POST') {
       return handleCreateProduct(request, env, origin);
+    }
+    if (pathname === '/api/orders' && method === 'GET') {
+      return handleGetOrders(request, env, origin);
+    }
+
+    // Dynamic order routes: /api/orders/:id and /api/orders/:id/status
+    const orderStatusMatch = pathname.match(/^\/api\/orders\/([^/]+)\/status$/);
+    if (orderStatusMatch && method === 'POST') {
+      const id = decodeURIComponent(orderStatusMatch[1]);
+      return handleUpdateOrderStatus(request, env, origin, id);
+    }
+
+    const orderMatch = pathname.match(/^\/api\/orders\/([^/]+)$/);
+    if (orderMatch && method === 'GET') {
+      const id = decodeURIComponent(orderMatch[1]);
+      return handleGetOrder(request, env, origin, id);
     }
 
     // Dynamic routes: /api/products/:id

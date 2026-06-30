@@ -48,6 +48,12 @@ export default function AdminDashboard() {
   const [savingId, setSavingId] = useState(null);
   const [toasts, setToasts] = useState([]);
 
+  // ── Tab state ──
+  const [activeTab, setActiveTab] = useState('products'); // 'products' | 'orders'
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+
   // ── Product modal state ──
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null); // null = create mode
@@ -233,6 +239,63 @@ export default function AdminDashboard() {
     setColorSelections((prev) => ({ ...prev, [productId]: [] }));
     handleSaveColors(productId, []);
     setColorPanelOpen(null);
+  };
+
+  // ── Fetch orders list ──
+  const fetchOrdersList = useCallback(async () => {
+    const token = sessionStorage.getItem('adminToken');
+    if (!token) return;
+    setOrdersLoading(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
+      } else {
+        showToast('Failed to load orders', 'error');
+      }
+    } catch {
+      showToast('Network error while loading orders', 'error');
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    if (activeTab === 'orders') {
+      fetchOrdersList();
+    }
+  }, [activeTab, fetchOrdersList]);
+
+  // ── Update order status ──
+  const handleUpdateOrderStatus = async (orderId, nextStatus) => {
+    const token = getToken();
+    if (!token) return;
+
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (res.ok) {
+        showToast(`Order ${orderId} marked as ${nextStatus}`);
+        fetchOrdersList();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Failed to update order status', 'error');
+      }
+    } catch {
+      showToast('Network error updating status', 'error');
+    } finally {
+      setUpdatingOrderId(null);
+    }
   };
 
   // Close color panel when clicking outside
@@ -644,6 +707,79 @@ export default function AdminDashboard() {
   const outOfStockCount = products.filter((p) => isOutOfStock(p.id)).length;
   const customCount = products.filter((p) => p.custom).length;
 
+  const activeOrders = orders.filter(o => o.status === 'preparing' || o.status === 'shipping');
+  const processedOrders = orders.filter(o => o.status === 'reached');
+
+  const renderOrderCard = (order, isProcessed = false) => {
+    const steps = ['preparing', 'shipping', 'reached'];
+    const currentStepIndex = steps.indexOf(order.status);
+    const isUpdating = updatingOrderId === order.orderId;
+
+    return (
+      <div key={order.orderId} className={`admin-order-card ${isProcessed ? 'admin-order-card--processed' : ''}`}>
+        <div className="admin-order-card-header">
+          <div>
+            <h4>Order {order.orderId}</h4>
+            <span className="admin-order-date">{new Date(order.createdAt).toLocaleString('en-IN')}</span>
+          </div>
+          <div className="admin-order-total">
+            ₹{order.totals?.total}
+          </div>
+        </div>
+
+        <div className="admin-order-customer-details">
+          <p><strong>Customer:</strong> {order.customer?.firstName} {order.customer?.lastName}</p>
+          <p><strong>Contact:</strong> {order.customer?.email} | {order.customer?.phone}</p>
+          <p><strong>Address:</strong> {order.customer?.address}, {order.customer?.city}, {order.customer?.state} - {order.customer?.pincode}</p>
+        </div>
+
+        <div className="admin-order-items">
+          <h5>Items:</h5>
+          <ul>
+            {(order.items || []).map((item, idx) => (
+              <li key={idx}>
+                {item.name} {item.selectedColor && <span className="admin-order-item-color">({item.selectedColor})</span>} × {item.quantity} - ₹{item.price * item.quantity}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="admin-order-stepper">
+          {steps.map((step, idx) => (
+            <div key={step} className={`admin-order-step ${idx <= currentStepIndex ? 'active' : ''} ${order.status === step ? 'current' : ''}`}>
+              <div className="admin-order-step-dot">{idx <= currentStepIndex ? '✓' : idx + 1}</div>
+              <span className="admin-order-step-label">{step.charAt(0).toUpperCase() + step.slice(1)}</span>
+            </div>
+          ))}
+        </div>
+
+        {!isProcessed && (
+          <div className="admin-order-actions">
+            {order.status === 'preparing' && (
+              <button
+                className="admin-btn-primary admin-btn-sm"
+                onClick={() => handleUpdateOrderStatus(order.orderId, 'shipping')}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'Updating...' : '🚚 Mark as Shipping'}
+              </button>
+            )}
+            {order.status === 'shipping' && (
+              <button
+                className="admin-btn-success admin-btn-sm"
+                onClick={() => handleUpdateOrderStatus(order.orderId, 'reached')}
+                disabled={isUpdating}
+                style={{ background: 'var(--admin-success)', color: '#0f0f0f', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+              >
+                {isUpdating ? 'Updating...' : '✓ Mark as Reached'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="admin-page">
@@ -667,8 +803,25 @@ export default function AdminDashboard() {
         </button>
       </header>
 
+      <div className="admin-tabs">
+        <button
+          className={`admin-tab-btn ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
+        >
+          🏷️ Products
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')}
+        >
+          📦 Orders
+        </button>
+      </div>
+
       <div className="admin-content">
-        <div className="admin-stats-bar">
+        {activeTab === 'products' && (
+          <>
+            <div className="admin-stats-bar">
           <div className="admin-stat-card">
             <div className="admin-stat-label">Total Products</div>
             <div className="admin-stat-value">{products.length}</div>
@@ -873,6 +1026,68 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="admin-orders-tab">
+            <div className="admin-stats-bar">
+              <div className="admin-stat-card">
+                <div className="admin-stat-label">Total Orders</div>
+                <div className="admin-stat-value">{orders.length}</div>
+              </div>
+              <div className="admin-stat-card">
+                <div className="admin-stat-label">Preparing</div>
+                <div className="admin-stat-value">
+                  {orders.filter(o => o.status === 'preparing').length}
+                </div>
+              </div>
+              <div className="admin-stat-card">
+                <div className="admin-stat-label">Shipping</div>
+                <div className="admin-stat-value">
+                  {orders.filter(o => o.status === 'shipping').length}
+                </div>
+              </div>
+              <div className="admin-stat-card">
+                <div className="admin-stat-label">Reached</div>
+                <div className="admin-stat-value">
+                  {orders.filter(o => o.status === 'reached').length}
+                </div>
+              </div>
+            </div>
+
+            {ordersLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <div className="admin-spinner" style={{ margin: '0 auto 16px auto' }} />
+                <span className="admin-loading-text">Loading orders…</span>
+              </div>
+            ) : (
+              <div className="admin-orders-content">
+                <div className="admin-orders-section">
+                  <h3 className="admin-orders-section-title">Active Orders ({activeOrders.length})</h3>
+                  {activeOrders.length === 0 ? (
+                    <div className="admin-orders-empty">No active orders found.</div>
+                  ) : (
+                    <div className="admin-orders-grid">
+                      {activeOrders.map(order => renderOrderCard(order))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin-orders-section admin-orders-section--processed">
+                  <h3 className="admin-orders-section-title">Processed Orders ({processedOrders.length})</h3>
+                  {processedOrders.length === 0 ? (
+                    <div className="admin-orders-empty">No processed orders found.</div>
+                  ) : (
+                    <div className="admin-orders-grid">
+                      {processedOrders.map(order => renderOrderCard(order, true))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Add / Edit Product Modal ── */}

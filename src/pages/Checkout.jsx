@@ -128,9 +128,10 @@ export default function Checkout() {
               }),
             });
             if (!verifyRes.ok) throw new Error('verify failed');
+            const verifyData = await verifyRes.json();
             showToast('Payment successful! Your order is confirmed.', 'success');
             clearCart();
-            navigate('/');
+            navigate(`/order-confirmation/${verifyData.orderId || response.razorpay_order_id}`);
           } catch {
             showToast(
               'Payment captured but verification failed. We will contact you.',

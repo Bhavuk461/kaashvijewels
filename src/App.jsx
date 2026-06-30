@@ -13,6 +13,8 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import OrderConfirmation from './pages/OrderConfirmation';
+import TrackOrder from './pages/TrackOrder';
 import './App.css';
 
 function ScrollToTop() {
@@ -52,6 +54,8 @@ function AppLayout() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+          <Route path="/track-order" element={<TrackOrder />} />
         </Routes>
       </main>
       {!isAdmin && <Footer />}

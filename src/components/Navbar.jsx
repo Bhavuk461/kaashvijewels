@@ -24,6 +24,7 @@ export default function Navbar() {
     { to: '/', label: 'Home' },
     { to: '/shop', label: 'Shop' },
     { to: '/about', label: 'About' },
+    { to: '/track-order', label: 'Track Order' },
     { to: '/contact', label: 'Contact' },
   ];
 
