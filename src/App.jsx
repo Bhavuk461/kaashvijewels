@@ -42,9 +42,14 @@ function AppLayout() {
 
   if (loading && !isAdmin) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)' }}>
-        <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid var(--color-border)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', marginTop: '16px', fontWeight: 500 }}>Loading Kaashvi Jewels...</p>
+      <div className="kaashvi-loader-container">
+        <div className="kaashvi-loader-ring">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+        <div className="kaashvi-loader-logo">The Kaashvi Jewels</div>
       </div>
     );
   }

@@ -5,13 +5,39 @@ const WORKER_URL = 'https://kaashvi-admin-api.greatgatch1.workers.dev';
 const ProductOverridesContext = createContext();
 
 export function ProductOverridesProvider({ children }) {
-  const [overrides, setOverrides] = useState({});
-  const [customProducts, setCustomProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [overrides, setOverrides] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kaashvi-cached-overrides');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [customProducts, setCustomProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kaashvi-cached-products');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const savedOverrides = localStorage.getItem('kaashvi-cached-overrides');
+      const savedProducts = localStorage.getItem('kaashvi-cached-products');
+      return !(savedOverrides && savedProducts);
+    } catch {
+      return true;
+    }
+  });
 
   const refreshOverrides = useCallback(async () => {
     try {
-      setLoading(true);
+      const savedOverrides = localStorage.getItem('kaashvi-cached-overrides');
+      const savedProducts = localStorage.getItem('kaashvi-cached-products');
+      if (!savedOverrides || !savedProducts) {
+        setLoading(true);
+      }
       const [overridesRes, productsRes] = await Promise.all([
         fetch(`${WORKER_URL}/api/overrides?t=${Date.now()}`, { cache: 'no-store' }),
         fetch(`${WORKER_URL}/api/products?t=${Date.now()}`, { cache: 'no-store' }),
@@ -19,11 +45,15 @@ export function ProductOverridesProvider({ children }) {
 
       if (overridesRes.ok) {
         const data = await overridesRes.json();
-        setOverrides(data.overrides || {});
+        const freshOverrides = data.overrides || {};
+        setOverrides(freshOverrides);
+        localStorage.setItem('kaashvi-cached-overrides', JSON.stringify(freshOverrides));
       }
       if (productsRes.ok) {
         const data = await productsRes.json();
-        setCustomProducts(Array.isArray(data.products) ? data.products : []);
+        const freshProducts = Array.isArray(data.products) ? data.products : [];
+        setCustomProducts(freshProducts);
+        localStorage.setItem('kaashvi-cached-products', JSON.stringify(freshProducts));
       }
     } catch (err) {
       console.error('Failed to fetch product data:', err);

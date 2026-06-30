@@ -2796,3 +2796,84 @@ h4 { font-size: 1.25rem; }
   }
 }
 
+/* ── Premium Loading Spinner ──────────────────────────────── */
+.kaashvi-loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #fffafa; /* Luxurious soft rose white */
+  font-family: 'Outfit', sans-serif;
+  animation: loaderFadeIn 0.3s ease-out;
+}
+
+.kaashvi-loader-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.kaashvi-loader-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: kaashvi-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-top-color: var(--color-primary); /* Rose Gold (#C07A8E) */
+}
+
+.kaashvi-loader-ring div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+.kaashvi-loader-ring div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.kaashvi-loader-ring div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+
+@keyframes kaashvi-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.kaashvi-loader-logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 24px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  animation: loaderPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loaderPulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes loaderFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
