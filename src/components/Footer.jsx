@@ -79,7 +79,7 @@ export default function Footer() {
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="footer__social-link" aria-label="Facebook">
               📘
             </a>
-            <a href="https://wa.me/919871796965" target="_blank" rel="noopener noreferrer" className="footer__social-link" aria-label="WhatsApp">
+            <a href="https://wa.me/918744084027" target="_blank" rel="noopener noreferrer" className="footer__social-link" aria-label="WhatsApp">
               💬
             </a>
             <a href="https://pinterest.com" target="_blank" rel="noopener noreferrer" className="footer__social-link" aria-label="Pinterest">
