@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
 import { useAllProducts } from '../hooks/useAllProducts';
+import { getCategoryLabel } from '../utils/category';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
 
@@ -45,12 +46,7 @@ export default function ProductDetail() {
     );
   }
 
-  const categoryLabel =
-    product.category === 'anti-tarnish'
-      ? 'Anti-Tarnish'
-      : product.category === 'bracelet'
-        ? 'Bracelet'
-        : 'Korean';
+  const categoryLabel = getCategoryLabel(product.category);
 
   // Build the list of images for the gallery (respects admin overrides)
   const allImages = getProductImages(product);

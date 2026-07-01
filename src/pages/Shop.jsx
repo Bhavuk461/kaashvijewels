@@ -12,7 +12,7 @@ export default function Shop() {
   // Read category from URL query string on mount and when params change
   useEffect(() => {
     const categoryParam = searchParams.get('category');
-    if (categoryParam && ['anti-tarnish', 'korean', 'bracelet'].includes(categoryParam)) {
+    if (categoryParam && ['anti-tarnish', 'korean', 'bracelet', 'tulip-bracelet'].includes(categoryParam)) {
       setSelectedCategory(categoryParam);
     }
   }, [searchParams]);
@@ -85,7 +85,7 @@ export default function Shop() {
                   checked={selectedCategory === 'anti-tarnish'}
                   onChange={() => setSelectedCategory('anti-tarnish')}
                 />
-                Anti-Tarnish
+                Anti-Tarnish Earrings
               </label>
               <label
                 className={`filter-group__option ${selectedCategory === 'korean' ? 'filter-group__option--active' : ''}`}
@@ -97,7 +97,7 @@ export default function Shop() {
                   checked={selectedCategory === 'korean'}
                   onChange={() => setSelectedCategory('korean')}
                 />
-                Korean
+                Korean Earrings
               </label>
               <label
                 className={`filter-group__option ${selectedCategory === 'bracelet' ? 'filter-group__option--active' : ''}`}
@@ -109,7 +109,19 @@ export default function Shop() {
                   checked={selectedCategory === 'bracelet'}
                   onChange={() => setSelectedCategory('bracelet')}
                 />
-                Bracelets
+                Anti Tarnish Bracelet
+              </label>
+              <label
+                className={`filter-group__option ${selectedCategory === 'tulip-bracelet' ? 'filter-group__option--active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="category"
+                  value="tulip-bracelet"
+                  checked={selectedCategory === 'tulip-bracelet'}
+                  onChange={() => setSelectedCategory('tulip-bracelet')}
+                />
+                Tulip Bracelets
               </label>
             </div>
 

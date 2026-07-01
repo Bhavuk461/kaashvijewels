@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
+import { getCategoryLabel } from '../utils/category';
 import { asset } from '../utils/assetPath';
 
 export default function Cart() {
@@ -42,12 +43,7 @@ export default function Cart() {
           {/* ── Cart Items ── */}
           <div className="cart-items">
             {cart.map((item) => {
-              const categoryLabel =
-                item.category === 'anti-tarnish'
-                  ? 'Anti-Tarnish'
-                  : item.category === 'bracelet'
-                    ? 'Bracelet'
-                    : 'Korean';
+              const categoryLabel = getCategoryLabel(item.category);
 
               return (
                 <div className="cart-item" key={item.id}>

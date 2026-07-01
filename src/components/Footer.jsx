@@ -31,8 +31,8 @@ export default function Footer() {
             <h4 className="footer__heading">Quick Links</h4>
             <Link to="/" className="footer__link">Home</Link>
             <Link to="/shop" className="footer__link">Shop All</Link>
-            <Link to="/shop?category=anti-tarnish" className="footer__link">Anti-Tarnish</Link>
-            <Link to="/shop?category=korean" className="footer__link">Korean Style</Link>
+            <Link to="/shop?category=anti-tarnish" className="footer__link">Anti-Tarnish Earrings</Link>
+            <Link to="/shop?category=korean" className="footer__link">Korean Earrings</Link>
             <Link to="/about" className="footer__link">About Us</Link>
             <Link to="/contact" className="footer__link">Contact</Link>
           </div>

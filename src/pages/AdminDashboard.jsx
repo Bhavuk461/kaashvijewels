@@ -8,9 +8,10 @@ import './Admin.css';
 const WORKER_URL = 'https://kaashvi-admin-api.greatgatch1.workers.dev';
 
 const CATEGORY_OPTIONS = [
-  { value: 'anti-tarnish', label: 'Anti-Tarnish' },
-  { value: 'bracelet', label: 'Bracelet' },
-  { value: 'korean', label: 'Korean' },
+  { value: 'anti-tarnish', label: 'Anti-Tarnish Earrings' },
+  { value: 'korean', label: 'Korean Earrings' },
+  { value: 'bracelet', label: 'Anti Tarnish Bracelet' },
+  { value: 'tulip-bracelet', label: 'Tulip Bracelets' },
 ];
 const BADGE_OPTIONS = ['', 'Bestseller', 'New'];
 
