@@ -13,7 +13,7 @@ export default function Shop() {
   // Read category from URL query string on mount and when params change
   useEffect(() => {
     const categoryParam = searchParams.get('category');
-    if (categoryParam && ['anti-tarnish', 'korean', 'bracelet', 'tulip-bracelet'].includes(categoryParam)) {
+    if (categoryParam && ['anti-tarnish', 'korean', 'kashmiri', 'bracelet', 'tulip-bracelet'].includes(categoryParam)) {
       setSelectedCategory(categoryParam);
     }
   }, [searchParams]);
@@ -99,6 +99,18 @@ export default function Shop() {
                   onChange={() => setSelectedCategory('korean')}
                 />
                 Korean Earrings
+              </label>
+              <label
+                className={`filter-group__option ${selectedCategory === 'kashmiri' ? 'filter-group__option--active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="category"
+                  value="kashmiri"
+                  checked={selectedCategory === 'kashmiri'}
+                  onChange={() => setSelectedCategory('kashmiri')}
+                />
+                Kashmiri Earrings
               </label>
               <label
                 className={`filter-group__option ${selectedCategory === 'bracelet' ? 'filter-group__option--active' : ''}`}

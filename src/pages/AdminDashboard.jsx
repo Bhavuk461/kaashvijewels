@@ -11,6 +11,7 @@ const WORKER_URL = 'https://kaashvi-admin-api.greatgatch1.workers.dev';
 const CATEGORY_OPTIONS = [
   { value: 'anti-tarnish', label: 'Anti-Tarnish Earrings' },
   { value: 'korean', label: 'Korean Earrings' },
+  { value: 'kashmiri', label: 'Kashmiri Earrings' },
   { value: 'bracelet', label: 'Anti Tarnish Bracelet' },
   { value: 'tulip-bracelet', label: 'Tulip Bracelets' },
 ];

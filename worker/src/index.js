@@ -378,7 +378,7 @@ async function handleUpload(request, env, origin) {
 
 /** Validate and normalise a custom-product payload. Returns { product } or { error }. */
 function buildProduct(body, id) {
-  const allowedCategories = ['anti-tarnish', 'bracelet', 'korean', 'tulip-bracelet'];
+  const allowedCategories = ['anti-tarnish', 'bracelet', 'korean', 'tulip-bracelet', 'kashmiri'];
   const {
     name,
     category,
@@ -395,7 +395,7 @@ function buildProduct(body, id) {
     return { error: 'Name is required' };
   }
   if (!allowedCategories.includes(category)) {
-    return { error: 'Category must be anti-tarnish, bracelet, korean, or tulip-bracelet' };
+    return { error: 'Category must be anti-tarnish, bracelet, korean, tulip-bracelet, or kashmiri' };
   }
   if (typeof price !== 'number' || price < 0 || Number.isNaN(price)) {
     return { error: 'Price must be a non-negative number' };

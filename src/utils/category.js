@@ -2,7 +2,8 @@ export const CATEGORY_MAP = {
   'anti-tarnish': 'Anti-Tarnish Earrings',
   'korean': 'Korean Earrings',
   'bracelet': 'Anti Tarnish Bracelet',
-  'tulip-bracelet': 'Tulip Bracelets'
+  'tulip-bracelet': 'Tulip Bracelets',
+  'kashmiri': 'Kashmiri Earrings'
 };
 
 export const getCategoryLabel = (category) => {
@@ -15,6 +16,9 @@ export const getEffectiveCategory = (product) => {
   const name = product.name || '';
   if (category === 'tulip-bracelet' || name.toLowerCase().includes('tulip')) {
     return 'tulip-bracelet';
+  }
+  if (category === 'kashmiri' || name.toLowerCase().includes('kashmiri')) {
+    return 'kashmiri';
   }
   return category;
 };
