@@ -117,7 +117,7 @@ function HomeContent() {
               <span className="home-marquee__dot">·</span>
               <span>📦 FREE SHIPPING ON ALL ORDERS</span>
               <span className="home-marquee__dot">·</span>
-              <span>↩️ 7-DAY EASY RETURNS</span>
+              <span>↩️ 10-DAY EASY RETURNS</span>
               <span className="home-marquee__dot">·</span>
             </span>
           ))}

@@ -20,7 +20,7 @@ export default function Contact() {
     },
     {
       question: 'What is your return policy?',
-      answer: 'We offer 7-day easy returns. Products must be unused and in original packaging. Simply contact us via email or phone, and we will arrange a pickup at no extra cost.',
+      answer: 'We offer 10-day easy returns. Products must be unused and in original packaging. Simply contact us via email or phone, and we will arrange a pickup at no extra cost.',
     },
     {
       question: 'Are your products hypoallergenic?',
