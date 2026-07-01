@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { products } from '../data/products';
+import { getEffectiveCategory } from '../utils/category';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
 import ParallaxProvider from '../hooks/ParallaxProvider';
@@ -71,9 +72,9 @@ function HomeContent() {
     };
   }, []);
 
-  const antiTarnish = products.filter((p) => p.category === 'anti-tarnish');
-  const korean = products.filter((p) => p.category === 'korean');
-  const bracelets = products.filter((p) => p.category === 'bracelet');
+  const antiTarnish = products.filter((p) => getEffectiveCategory(p) === 'anti-tarnish');
+  const korean = products.filter((p) => getEffectiveCategory(p) === 'korean');
+  const bracelets = products.filter((p) => getEffectiveCategory(p) === 'bracelet');
   const bestsellers = products.filter((p) => p.badge === 'Bestseller');
   const newArrivals = products.filter((p) => p.badge === 'New');
 

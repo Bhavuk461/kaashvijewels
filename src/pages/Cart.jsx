@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
-import { getCategoryLabel } from '../utils/category';
+import { getCategoryLabel, getEffectiveCategory } from '../utils/category';
 import { asset } from '../utils/assetPath';
 
 export default function Cart() {
@@ -43,7 +43,7 @@ export default function Cart() {
           {/* ── Cart Items ── */}
           <div className="cart-items">
             {cart.map((item) => {
-              const categoryLabel = getCategoryLabel(item.category);
+              const categoryLabel = getCategoryLabel(getEffectiveCategory(item));
 
               return (
                 <div className="cart-item" key={item.id}>

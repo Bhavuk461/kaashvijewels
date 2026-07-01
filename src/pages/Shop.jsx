@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAllProducts } from '../hooks/useAllProducts';
 import ProductCard from '../components/ProductCard';
+import { getEffectiveCategory } from '../utils/category';
 
 export default function Shop() {
   const [searchParams] = useSearchParams();
@@ -20,7 +21,7 @@ export default function Shop() {
   // ── Filter products by category ──
   const filteredProducts = products.filter((product) => {
     if (selectedCategory === 'all') return true;
-    return product.category === selectedCategory;
+    return getEffectiveCategory(product) === selectedCategory;
   });
 
   // ── Sort filtered products ──

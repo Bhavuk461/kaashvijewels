@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
 import { useAllProducts } from '../hooks/useAllProducts';
-import { getCategoryLabel } from '../utils/category';
+import { getCategoryLabel, getEffectiveCategory } from '../utils/category';
 import ProductCard from '../components/ProductCard';
 import ProductImage from '../components/ProductImage';
 
@@ -46,7 +46,7 @@ export default function ProductDetail() {
     );
   }
 
-  const categoryLabel = getCategoryLabel(product.category);
+  const categoryLabel = getCategoryLabel(getEffectiveCategory(product));
 
   // Build the list of images for the gallery (respects admin overrides)
   const allImages = getProductImages(product);
@@ -97,7 +97,7 @@ export default function ProductDetail() {
 
   // ── Related products: same category, exclude current, limit to 4 ──
   const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => getEffectiveCategory(p) === getEffectiveCategory(product) && p.id !== product.id)
     .slice(0, 4);
 
   return (

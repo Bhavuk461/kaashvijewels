@@ -1,4 +1,5 @@
 // Hero product selection helpers for the editorial hero section.
+import { getEffectiveCategory } from '../utils/category';
 // Pure, side-effect-free, and tolerant of null/undefined/empty product arrays.
 //
 // Used by Home.jsx (task 12.1) to populate the five hero slots:
@@ -43,8 +44,8 @@ export function pickById(products, id, fallback) {
 export function selectHeroProducts(products) {
   const safe = Array.isArray(products) ? products : [];
 
-  const antiTarnish = safe.filter((p) => p && p.category === 'anti-tarnish');
-  const korean = safe.filter((p) => p && p.category === 'korean');
+  const antiTarnish = safe.filter((p) => p && getEffectiveCategory(p) === 'anti-tarnish');
+  const korean = safe.filter((p) => p && getEffectiveCategory(p) === 'korean');
 
   return {
     // Anti-tarnish floral statement (Bestseller)

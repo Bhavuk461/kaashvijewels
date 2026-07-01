@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProductOverrides } from '../context/ProductOverridesContext';
 import { useAllProducts } from '../hooks/useAllProducts';
 import ProductImage from '../components/ProductImage';
+import { getCategoryLabel, getEffectiveCategory } from '../utils/category';
 import './Admin.css';
 
 const WORKER_URL = 'https://kaashvi-admin-api.greatgatch1.workers.dev';
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
   const products = useAllProducts();
 
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [prices, setPrices] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -697,12 +699,20 @@ export default function AdminDashboard() {
   };
 
   // ── Filter products ──
-  const filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = products.filter((p) => {
+    if (categoryFilter !== 'all') {
+      if (getEffectiveCategory(p) !== categoryFilter) {
+        return false;
+      }
+    }
+    const searchLower = search.toLowerCase();
+    const effectiveCategoryLabel = getCategoryLabel(getEffectiveCategory(p)).toLowerCase();
+    return (
+      p.name.toLowerCase().includes(searchLower) ||
+      p.id.toLowerCase().includes(searchLower) ||
+      effectiveCategoryLabel.includes(searchLower)
+    );
+  });
 
   // ── Stats ──
   const outOfStockCount = products.filter((p) => isOutOfStock(p.id)).length;
@@ -841,6 +851,19 @@ export default function AdminDashboard() {
           <div className="admin-table-header">
             <h2>All Products ({filtered.length})</h2>
             <div className="admin-table-header-actions">
+              <select
+                className="admin-search-input"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{ width: 'auto', paddingRight: '10px' }}
+              >
+                <option value="all">All Categories</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
               <input
                 className="admin-search-input"
                 type="text"
@@ -892,7 +915,7 @@ export default function AdminDashboard() {
                     </td>
                     <td data-label="Category">
                       <span className="admin-category-badge">
-                        {product.category}
+                        {getCategoryLabel(getEffectiveCategory(product))}
                       </span>
                     </td>
                     <td data-label="Price">

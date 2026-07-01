@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useProductOverrides } from '../context/ProductOverridesContext';
-import { getCategoryLabel } from '../utils/category';
+import { getCategoryLabel, getEffectiveCategory } from '../utils/category';
 import ProductImage from './ProductImage';
 
 export default function ProductCard({ product }) {
@@ -9,7 +9,7 @@ export default function ProductCard({ product }) {
   const { getProductPrice, isOutOfStock, getProductImages } = useProductOverrides();
   const productImages = getProductImages(product);
 
-  const categoryLabel = getCategoryLabel(product.category);
+  const categoryLabel = getCategoryLabel(getEffectiveCategory(product));
 
   const displayPrice = getProductPrice(product);
   const outOfStock = isOutOfStock(product.id);
